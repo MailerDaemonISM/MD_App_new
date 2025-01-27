@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, FlatList, Image } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Ensure Icon is imported
-import { fetchPlacementData } from '../sanity'; // Assuming you have this function
+import { View, FlatList, Text, StyleSheet } from 'react-native';
+import PlacementCard from './PlacementCard';
+import { fetchPlacementData } from '../sanity';
+import Filter from './filter'; 
 
 const PlacementList = () => {
-  const [placements, setPlacements] = useState([]);
+  const [placements, setPlacements] = useState([]); // Ensure it's initialized as an empty array
   const [loading, setLoading] = useState(true);
+  const [selectedOption, setSelectedOption] = useState('year');
 
   useEffect(() => {
     const getData = async () => {
@@ -28,101 +30,42 @@ const PlacementList = () => {
       </View>
     );
   }
- 
-  
- 
+
   return (
-    <>
-    <FlatList
-      data={placements}
-      keyExtractor={(item) => item._id}
-      renderItem={({ item }) => (
-        <View style={styles.card}>
-          <Image
-            source={{ uri: item.imageUrl }} // Assuming you have a companyLogo field
-            style={styles.companyLogo}
+    <View style={{ flex: 1 }}>
+      {/* Use Filter component */}
+      <Filter selectedOption={selectedOption} setSelectedOption={setSelectedOption} />
+
+      {/* Placement List */}
+      <FlatList
+        data={placements}
+        keyExtractor={(item, index) => item._id || index.toString()} // Fallback to index if _id is missing
+        renderItem={({ item }) => (
+          <PlacementCard
+            image={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }}
+            title={item.name}
+            companyName={item.company_name}
+            role={item.role}
+            year={item.year}
+            students={item.students || []}
+            facebookLink="https://www.facebook.com/share/15bXw7KR7z/"
           />
-          <Text style={styles.title}>{item.name}</Text>
-          <Text>On Campus</Text>
-          <Text style={styles.company}>Company: {item.company_name}</Text>
-          <Text>Role: {item.role}</Text>
-          <Text>Eligible Branch: {item.eligible_branch}</Text>
-          <View style={styles.rightMark} />
-        </View>
-      )}
-      style={styles.list}
-    />
-    </>
+        )}
+        style={styles.list}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    header: {
-      color:'black',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 16,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: 'black',
-    },
-    optionsContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      paddingVertical: 16,
-    },
-    optionButton: {
-      backgroundColor: '#98DDFF',
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 8,
-    },
-    optionText: {
-      color: '#fff',
-      fontWeight: 'bold',
-      fontSize: 14,
-    },
-    list: {
-      backgroundColor: '#f0f0f0', // Background color for the list
-    },
-    card: {
-      backgroundColor: '#fff',
-      padding: 16,
-      margin: 16,
-      borderRadius: 8,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#333',
-    },
-    rightMark: {
-      position: 'absolute',
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: 20, 
-      backgroundColor: '#98DDFF', 
-      borderTopRightRadius: 8,
-      borderBottomRightRadius: 8, 
-    },
-    company: {
-      color: '#777',
-    },
-    companyLogo: {
-      width: 80, // Adjusted width
-      height: 80, // Adjusted height
-      resizeMode: 'contain', // Ensures the logo is fully visible
-      marginBottom: 10,
-    },
-  });
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  list: {
+    flex: 1,
+  },
+});
 
 export default PlacementList;
