@@ -5,7 +5,7 @@ import { fetchPlacementData } from '../sanity';
 import Filter from './filter'; 
 
 const PlacementList = () => {
-  const [placements, setPlacements] = useState([]); // Ensure it's initialized as an empty array
+  const [placements, setPlacements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOption, setSelectedOption] = useState('year');
 
@@ -13,7 +13,11 @@ const PlacementList = () => {
     const getData = async () => {
       try {
         const data = await fetchPlacementData();
-        setPlacements(data);
+
+        //sorted
+        const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
+
+        setPlacements(sortedData);
       } catch (error) {
         console.error('Error fetching placement data:', error);
       } finally {
@@ -33,13 +37,13 @@ const PlacementList = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Use Filter component */}
+      {/* Filter Section */}
       <Filter selectedOption={selectedOption} setSelectedOption={setSelectedOption} />
 
       {/* Placement List */}
       <FlatList
         data={placements}
-        keyExtractor={(item, index) => item._id || index.toString()} // Fallback to index if _id is missing
+        keyExtractor={(item, index) => item._id || index.toString()}
         renderItem={({ item }) => (
           <PlacementCard
             image={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }}
