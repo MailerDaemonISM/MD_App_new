@@ -1,23 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, FlatList, Text, StyleSheet } from 'react-native';
 import PlacementCard from './PlacementCard';
 import { fetchPlacementData } from '../sanity';
-import Filter from './filter'; 
+import Filter from './filter';
 
 const PlacementList = () => {
   const [placements, setPlacements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOption, setSelectedOption] = useState('year');
+  const [selectedOption, setSelectedOption] = useState('Year');
+  const [selectedValue, setSelectedValue] = useState(null);
 
   useEffect(() => {
     const getData = async () => {
       try {
         const data = await fetchPlacementData();
-
-        //sorted
-        const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
-
-        setPlacements(sortedData);
+        if (Array.isArray(data)) {
+          setPlacements(data);
+        } else {
+          setPlacements([]);
+        }
       } catch (error) {
         console.error('Error fetching placement data:', error);
       } finally {
@@ -26,6 +27,22 @@ const PlacementList = () => {
     };
     getData();
   }, []);
+
+  // Filter and Sort Data
+  const filteredData = useMemo(() => {
+    let data = placements;
+
+    if (selectedValue) {
+      data = data.filter((item) =>
+        selectedOption === 'Year'
+          ? item.year === selectedValue
+          : item.eligible_branch.includes(selectedValue)
+      );
+    }
+
+    // Sort Alphabetically by Company Name
+    return data.sort((a, b) => a.company_name.localeCompare(b.company_name));
+  }, [placements, selectedOption, selectedValue]);
 
   if (loading) {
     return (
@@ -38,11 +55,15 @@ const PlacementList = () => {
   return (
     <View style={{ flex: 1 }}>
       {/* Filter Section */}
-      <Filter selectedOption={selectedOption} setSelectedOption={setSelectedOption} />
+      <Filter
+        selectedOption={selectedOption}
+        setSelectedOption={setSelectedOption}
+        setSelectedValue={setSelectedValue}
+      />
 
       {/* Placement List */}
       <FlatList
-        data={placements}
+        data={filteredData}
         keyExtractor={(item, index) => item._id || index.toString()}
         renderItem={({ item }) => (
           <PlacementCard
@@ -52,7 +73,6 @@ const PlacementList = () => {
             role={item.role}
             year={item.year}
             students={item.students || []}
-            facebookLink="https://www.facebook.com/share/15bXw7KR7z/"
           />
         )}
         style={styles.list}
