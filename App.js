@@ -5,6 +5,7 @@ import { Text , Image, View,Linking} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList  } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useNavigation } from "@react-navigation/native";
 
 import HomeScreen from "./Screens/HomeScreen";
 import MDHashtags from "./Screens/MDHashtags";
@@ -13,6 +14,7 @@ import ContactUs from './Screens/ContactUs';
 import MDLostnFound from './Screens/MDLost&Found';
 import MDPosts from './Screens/MDPosts';
 import Placementor from './Screens/Placementor';
+import Details from './Screens/Details';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -139,6 +141,7 @@ const App = () => {
         <Drawer.Screen name="Placementor" component={Placementor} />
         <Drawer.Screen name="ContactUs" component={ContactUs} />
         <Drawer.Screen name="AboutUs" component={AboutUs} />
+        <Drawer.Screen name="Details" component={Details} />
       </Drawer.Navigator>
     </NavigationContainer>
   );

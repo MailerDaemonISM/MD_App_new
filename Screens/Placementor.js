@@ -1,34 +1,68 @@
 import React, { useEffect, useState } from "react";
+import { BackHandler } from 'react-native';
 import {
-  TouchableOpacity,
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
   FlatList,
   Image,
-  ScrollView,
+  TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  TouchableWithoutFeedback,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { fetchPlacementData } from "../sanity";
+import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "@react-navigation/native";
+let url = "";
+// Function to fetch placement data based on the selected year
+const fetchPlacementData = async (year) => {
+  
+
+  if (year === "2024") {
+    url =
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  } else if (year === "2023") {
+    url =
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  } else if (year === "2022") {
+    url =
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  } else if (year == "2021") {
+    url =
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  } else if (year == "2020") {
+    url =
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  }
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.result; // Return the array of placement data
+  } catch (error) {
+    console.error("Error fetching placement data:", error);
+    return [];
+  }
+};
 
 const PlacementList = () => {
   const [placements, setPlacements] = useState([]);
   const [filteredPlacements, setFilteredPlacements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("All");
   const [searchText, setSearchText] = useState("");
+  const [selectedYear, setSelectedYear] = useState("2024");
+  const [selectedBranch, setSelectedBranch] = useState("All");
+  const navigation = useNavigation();
+
 
   useEffect(() => {
     const getData = async () => {
+      setLoading(true);
       try {
-        const data = await fetchPlacementData();
+        const data = await fetchPlacementData(selectedYear);
         setPlacements(data);
-        setFilteredPlacements(data); // Set initial filtered data
+        setFilteredPlacements(data);
       } catch (error) {
         console.error("Error fetching placement data:", error);
       } finally {
@@ -36,7 +70,10 @@ const PlacementList = () => {
       }
     };
     getData();
-  }, []);
+
+    
+
+  }, [selectedYear]); // Refetch data whenever the selected year changes
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -44,93 +81,100 @@ const PlacementList = () => {
       (item) =>
         item.name.toLowerCase().includes(text.toLowerCase()) ||
         item.company_name.toLowerCase().includes(text.toLowerCase()) ||
-        item.role.toLowerCase().includes(text.toLowerCase()) ||
-        item.eligible_branch.toLowerCase().includes(text.toLowerCase())
+        item.role.toLowerCase().includes(text.toLowerCase())
     );
     setFilteredPlacements(filteredData);
   };
 
-  const renderCard = ({ item }) => (
-    <View style={styles.card} key={key}>
-      <Text style={styles.title}>{item.name}</Text>
-      <View style={styles.cardHeader}>
-        <Image source={{ uri: item.imageUrl }} style={styles.companyLogo} />
+  const navigateToDetails = (id, year) => {
+    navigation.navigate('Details', { id, year, url });
+  };
 
-        <TouchableOpacity>
-          <Icon name="bookmark-border" size={24} color="#777" />
+  const renderCard = ({ item }) => (
+    <TouchableOpacity style={styles.card} onPress={() => navigateToDetails(item.id, item.year, url)}>
+      <View>
+        <Image source={{ uri: item.imageUrl }} style={styles.companyLogo} />
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{item.name}</Text>
+        <Text style={styles.detail}>Role: {item.role}</Text>
+        <Text>On Campus</Text>
+        <Text>Year : {item.year}</Text>
+      </View>
+      <View style={styles.iconsContainer}>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="bookmark-border" size={20} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="share" size={20} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="info" size={20} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="open-in-new" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
-      <Text>Role: {item.role}</Text>
-      <View style={styles.cardFooter}>
-        <Text style={styles.campusType}>On Campus</Text>
-        <TouchableOpacity>
-          <Icon name="share" size={20} color="#777" />
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF5733" />
+        <Text style={styles.loadingText}>Loading, please wait...</Text>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          {/* Search Bar */}
-          <TextInput
-            style={styles.searchBar}
-            placeholder="Search placements, companies, roles..."
-            placeholderTextColor="#888"
-            value={searchText}
-            onChangeText={handleSearch}
-          />
+    <View style={styles.container}>
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Search placements..."
+        value={searchText}
+        onChangeText={handleSearch}
+      />
 
-          {/* Header Tabs */}
-          <ScrollView
-            horizontal
-            style={styles.tabsContainer}
-            showsHorizontalScrollIndicator={true}
-          >
-            {["All", "Placements", "Internships", "PPOs"].map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tabButton,
-                  activeTab === tab && styles.activeTab,
-                ]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab && styles.activeTabText,
-                  ]}
-                >
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+      {/* Dropdowns for selecting year and branch */}
+      <View style={styles.filterContainer}>
+        <Picker
+          selectedValue={selectedYear}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedYear(itemValue)}
+        >
+          <Picker.Item label="2024" value="2024" />
+          <Picker.Item label="2023" value="2023" />
+          <Picker.Item label="2022" value="2022" />
+          <Picker.Item label="2021" value="2021" />
+          <Picker.Item label="2020" value="2020" />
+        </Picker>
 
-          {/* Placement List */}
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.list}
-          >
-            {filteredPlacements.map((item,key) => renderCard({ item,key }))}
-          </ScrollView>
+        <Picker
+          selectedValue={selectedBranch}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedBranch(itemValue)}
+        >
+          <Picker.Item label="All Branches" value="All" />
+          <Picker.Item label="CSE" value="CSE" />
+          <Picker.Item label="ECE" value="ECE" />
+        </Picker>
+      </View>
+
+      {filteredPlacements.length > 0 ? (
+        <FlatList
+          data={filteredPlacements}
+          keyExtractor={(item) => item.id}
+          renderItem={renderCard}
+        />
+      ) : (
+        <View style={styles.noResultsContainer}>
+          <Text style={styles.noResultsText}>
+            No placements found for your search. Please try different keywords.
+          </Text>
         </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+      )}
+    </View>
   );
 };
 
@@ -146,81 +190,84 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ddd",
-    fontSize: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 2,
   },
-  tabsContainer: {
+  filterContainer: {
     flexDirection: "row",
+    justifyContent: "space-around",
     padding: 10,
+  },
+  picker: {
+    width: 150,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-  tabButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginRight: 8,
-    backgroundColor: "#eee",
-    borderRadius: 20,
-  },
-  activeTab: {
-    backgroundColor: "#98DDFF",
-  },
-  tabText: {
-    fontSize: 14,
-    color: "#555",
-  },
-  activeTabText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  scrollView: {
-    height: "70%", // Fix height to 70% of the screen
-    paddingHorizontal: 16,
-  },
-  list: {
-    paddingBottom: 16, // Avoid overlap with the keyboard
   },
   card: {
+    flexDirection: "row",
     backgroundColor: "#fff",
-    padding: 16,
-    marginVertical: 8,
+    paddingLeft: 10,
     borderRadius: 12,
+    marginVertical: 8,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
   },
   companyLogo: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 120,
+    height: 120,
     resizeMode: "contain",
   },
+  cardContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
   title: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#333",
   },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  campusType: {
+  detail: {
     fontSize: 14,
     color: "#555",
+  },
+  cardcontainer: {
+    padding: 20,
+  },
+  iconsContainer: {
+    flexDirection: "column",
+    backgroundColor: "#98DDFF",
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    padding: 5,
+  },
+  iconButton: {
+    padding: 10,
+    alignItems: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#333",
+    marginTop: 10,
+    fontWeight: "bold",
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: "#555",
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });
 
