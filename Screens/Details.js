@@ -4,9 +4,7 @@ import {
   Text,
   ActivityIndicator,
   StyleSheet,
-  Image,
   ScrollView,
-  TouchableOpacity,
   BackHandler,
 } from "react-native";
 import { Card, Title, Paragraph, List } from "react-native-paper";
@@ -50,7 +48,6 @@ const Details = ({ route }) => {
     getPlacementDetails();
   }, [url, company_name]);
 
-  // Handle back button
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
@@ -82,44 +79,140 @@ const Details = ({ route }) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Back Button */}
-      {/* <TouchableOpacity onPress={() => navigation.navigate("Placementor")} style={styles.backButton}>
-        <MaterialIcons name="arrow-back" size={28} color="white" />
-      </TouchableOpacity> */}
-
-      {/* Image */}
-      {/* {placementDetails.image && placementDetails.image.url && (
-        <Image source={{ uri: placementDetails.image.url }} style={styles.image} />
-      )} */}
-
-      {/* Details Card */}
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
       <Card style={styles.card}>
         <Title style={styles.title}>{placementDetails.name}</Title>
-        <Paragraph style={styles.detail}>Role: {placementDetails.role}</Paragraph>
-        <Paragraph style={styles.detail}>Company: {placementDetails.company_name}</Paragraph>
-        <Paragraph style={styles.detail}>CGPA: {placementDetails.CGPA}</Paragraph>
-        <Paragraph style={styles.detail}>Year: {placementDetails.year}</Paragraph>
-        <Paragraph style={styles.detail}>Eligible Branch: {placementDetails.eligible_branch}</Paragraph>
+        <Paragraph style={styles.detail}>
+          Role: {placementDetails.role}
+        </Paragraph>
+        <Paragraph style={styles.detail}>
+          Company: {placementDetails.company_name}
+        </Paragraph>
+        <Paragraph style={styles.detail}>
+          CGPA: {placementDetails.CGPA}
+        </Paragraph>
+        <Paragraph style={styles.detail}>
+          Year: {placementDetails.year}
+        </Paragraph>
+        <Paragraph style={styles.detail}>
+          Eligible Branch: {placementDetails.eligible_branch}
+        </Paragraph>
       </Card>
 
       {/* Interview Rounds */}
-      <Section title="Interview Rounds" data={placementDetails.interview_round} />
-      
+      <InterviewRoundsSection data={placementDetails.interview_round} />
+
       {/* Selection Process */}
-      <Section title="Selection Process" data={placementDetails.selection_process} />
-      
+      <SelectionProcessSection data={placementDetails.selection_process} />
+
       {/* Takeaways */}
-      <Section title="Takeaways" data={{ takeaways: placementDetails.takeaways }} />
-      
+      <Section
+        title="Takeaways"
+        data={{ "Key Takeaways": placementDetails.takeaways }}
+      />
+
       {/* Test Series */}
-      <Section title="Test Series" data={{ test_series: placementDetails.test_series }} />
-      
+      <Section
+        title="Test Preparation"
+        data={{ "Test Series": placementDetails.test_series }}
+      />
+
       {/* Influence Of */}
-      <Section title="Influence Of" data={placementDetails.influence_of} />
+      <InfluenceOfSection data={placementDetails.influence_of} />
     </ScrollView>
   );
 };
+
+// Section for Interview Rounds
+const InterviewRoundsSection = ({ data }) => (
+  <>
+    <Text style={styles.sectionHeading}>Interview Rounds</Text>
+    <List.Section>
+      {data ? (
+        Object.entries(data).map(([key, value], index) => (
+          <List.Accordion
+            key={key}
+            title={`Round ${index + 1}`}
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{value}</Text>
+          </List.Accordion>
+        ))
+      ) : (
+        <Paragraph style={styles.detail}>
+          No interview round details available.
+        </Paragraph>
+      )}
+    </List.Section>
+  </>
+);
+
+// Section for Selection Process
+const SelectionProcessSection = ({ data }) => {
+  if (!data) return null;
+
+  // Define key mapping
+  const keyMap = {
+    step1: "Round 1",
+    step2: "Group Discussion Round",
+    step3: "Interview Round",
+  };
+
+  // Sort keys to maintain correct order (step1, step2, step3)
+  const sortedKeys = Object.keys(data).sort();
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Selection Process</Text>
+      <List.Section>
+        {sortedKeys.map((key) => (
+          <List.Accordion
+            key={key}
+            title={keyMap[key] || key}
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{data[key]}</Text>
+          </List.Accordion>
+        ))}
+      </List.Section>
+    </>
+  );
+};
+
+
+
+// Section for Influence Of
+const InfluenceOfSection = ({ data }) => {
+  if (!data) return null;
+
+  // Define fixed headings for Influence Of section
+  const keyMap = {
+    projects: "Projects/Previous Internships",
+    pors: "PORs",
+  };
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Influence Of</Text>
+      <List.Section>
+        {Object.entries(data).map(([key, value]) => (
+          <List.Accordion
+            key={key}
+            title={keyMap[key] || key} // Use predefined headings if available
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{value}</Text>
+          </List.Accordion>
+        ))}
+      </List.Section>
+    </>
+  );
+};
+
+
+
+
+
 
 // Reusable Section Component
 const Section = ({ title, data }) => (
@@ -128,12 +221,18 @@ const Section = ({ title, data }) => (
     <List.Section>
       {data ? (
         Object.entries(data).map(([key, value]) => (
-          <List.Accordion key={key} title={`${title} ${key}`} titleStyle={styles.accordionTitle}>
+          <List.Accordion
+            key={key}
+            title={key}
+            titleStyle={styles.accordionTitle}
+          >
             <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
         ))
       ) : (
-        <Paragraph style={styles.detail}>No {title.toLowerCase()} details available.</Paragraph>
+        <Paragraph style={styles.detail}>
+          No {title.toLowerCase()} details available.
+        </Paragraph>
       )}
     </List.Section>
   </>
@@ -143,16 +242,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f4f7fc",
-  },
-  backButton: {
-    position: "absolute",
-    top: 15,
-    left: 15,
-    backgroundColor: "#3b5998",
-    padding: 10,
-    borderRadius: 50,
-    zIndex: 10,
+    backgroundColor: "#f9f9f9",
   },
   loadingContainer: {
     flex: 1,
@@ -198,20 +288,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 5,
   },
-  image: {
-    width: "100%",
-    height: 220,
-    borderRadius: 15,
-    marginBottom: 20,
-    resizeMode: "cover",
-  },
   sectionHeading: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#444",
+    color: "rgba(238, 109, 152, 1)", // Apply the specified color
     marginVertical: 15,
     borderBottomWidth: 2,
-    borderBottomColor: "#3b5998",
+    borderBottomColor: "rgba(238, 109, 152, 1)", // Matching border color
     paddingBottom: 5,
   },
   accordionTitle: {
@@ -219,10 +302,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   accordionText: {
-    fontSize: 17,
+    fontSize: 14,
     color: "#333",
     paddingHorizontal: 15,
     paddingVertical: 10,
+    fontStyle: "italic",
   },
 });
 

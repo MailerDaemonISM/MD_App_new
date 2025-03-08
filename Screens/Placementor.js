@@ -87,24 +87,34 @@ const PlacementList = () => {
     filterPlacements(searchText, branch);
   };
 
-  const filterPlacements = (text, branch) => {
+  const filterPlacements = (text = "", branch = "All") => {
     const filteredData = placements.filter((item) => {
+      // Ensure all properties exist before calling .toLowerCase()
+      const name = item.name ? item.name.toLowerCase() : "";
+      const companyName = item.company_name ? item.company_name.toLowerCase() : "";
+      const role = item.role ? item.role.toLowerCase() : "";
+  
       const matchesSearch =
-        item.name.toLowerCase().includes(text.toLowerCase()) ||
-        item.company_name.toLowerCase().includes(text.toLowerCase()) ||
-        item.role.toLowerCase().includes(text.toLowerCase());
-
-      const eligibleBranches = item.eligible_branch.toLowerCase().split(",");
+        name.includes(text.toLowerCase()) ||
+        companyName.includes(text.toLowerCase()) ||
+        role.includes(text.toLowerCase());
+  
+      // Ensure eligible_branch exists before calling .toLowerCase()
+      const eligibleBranches = item.eligible_branch
+        ? item.eligible_branch.toLowerCase().split(",")
+        : [];
+  
       const isBranchEligible =
         branch === "All" ||
         eligibleBranches.includes(branch.toLowerCase()) ||
         eligibleBranches.includes("open to all");
-
+  
       return matchesSearch && isBranchEligible;
     });
-
+  
     setFilteredPlacements(filteredData);
   };
+  
 
   const navigateToDetails = (company_name, year, url) => {
     navigation.navigate("Details", { company_name, year, url });
