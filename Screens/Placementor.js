@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BackHandler } from 'react-native';
+import { BackHandler } from "react-native";
 import {
   ActivityIndicator,
   View,
@@ -17,8 +17,6 @@ import { useNavigation } from "@react-navigation/native";
 let url = "";
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
-  
-
   if (year === "2024") {
     url =
       "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
@@ -55,14 +53,14 @@ const PlacementList = () => {
   const [selectedBranch, setSelectedBranch] = useState("All");
   const navigation = useNavigation();
 
-
   useEffect(() => {
     const getData = async () => {
       setLoading(true);
       try {
         const data = await fetchPlacementData(selectedYear);
-        setPlacements(data);
-        setFilteredPlacements(data);
+        const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
+        setPlacements(sortedData);
+        setFilteredPlacements(sortedData);
       } catch (error) {
         console.error("Error fetching placement data:", error);
       } finally {
@@ -70,31 +68,71 @@ const PlacementList = () => {
       }
     };
     getData();
-
-    
-
   }, [selectedYear]); // Refetch data whenever the selected year changes
 
   const handleSearch = (text) => {
     setSearchText(text);
-    const filteredData = placements.filter(
-      (item) =>
+    filterPlacements(text, selectedBranch);
+    // const filteredData = placements.filter(
+    //   (item) =>
+    //     item.name.toLowerCase().includes(text.toLowerCase()) ||
+    //     item.company_name.toLowerCase().includes(text.toLowerCase()) ||
+    //     item.role.toLowerCase().includes(text.toLowerCase())
+    // );
+    // setFilteredPlacements(filteredData);
+  };
+
+  const handleBranchChange = (branch) => {
+    setSelectedBranch(branch);
+    filterPlacements(searchText, branch);
+  };
+
+  const filterPlacements = (text, branch) => {
+    const filteredData = placements.filter((item) => {
+      const matchesSearch =
         item.name.toLowerCase().includes(text.toLowerCase()) ||
         item.company_name.toLowerCase().includes(text.toLowerCase()) ||
-        item.role.toLowerCase().includes(text.toLowerCase())
-    );
+        item.role.toLowerCase().includes(text.toLowerCase());
+
+      const eligibleBranches = item.eligible_branch.toLowerCase().split(",");
+      const isBranchEligible =
+        branch === "All" ||
+        eligibleBranches.includes(branch.toLowerCase()) ||
+        eligibleBranches.includes("open to all");
+
+      return matchesSearch && isBranchEligible;
+    });
+
     setFilteredPlacements(filteredData);
   };
 
-  const navigateToDetails = (id, year) => {
-    navigation.navigate('Details', { id, year, url });
+  const navigateToDetails = (company_name, year, url) => {
+    navigation.navigate("Details", { company_name, year, url });
+  };
+
+  const getImageUrl = (image) => {
+    if (!image || !image.asset || !image.asset._ref) return null;
+
+    // Extract the image ID and format from the _ref string
+    const imageId = image.asset._ref.split("-")[1];
+    const dimensions = image.asset._ref.split("-")[2];
+    const format = image.asset._ref.split("-")[3];
+
+    return `https://cdn.sanity.io/images/zltsypm6/production/${imageId}-${dimensions}.${format}`;
   };
 
   const renderCard = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigateToDetails(item.id, item.year, url)}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigateToDetails(item.company_name, item.year, url)}
+    >
       <View>
-        <Image source={{ uri: item.imageUrl }} style={styles.companyLogo} />
+        <Image
+          source={{ uri: getImageUrl(item.image) }}
+          style={styles.companyLogo}
+        />
       </View>
+
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.name}</Text>
         <Text style={styles.detail}>Role: {item.role}</Text>
@@ -153,11 +191,23 @@ const PlacementList = () => {
         <Picker
           selectedValue={selectedBranch}
           style={styles.picker}
-          onValueChange={(itemValue) => setSelectedBranch(itemValue)}
+          onValueChange={handleBranchChange}
         >
           <Picker.Item label="All Branches" value="All" />
           <Picker.Item label="CSE" value="CSE" />
           <Picker.Item label="ECE" value="ECE" />
+          <Picker.Item label="EE" value="EE" />
+          <Picker.Item label="CE" value="CE" />
+          <Picker.Item label="EP" value="EP" />
+          <Picker.Item label="ESE" value="ESE" />
+          <Picker.Item label="FME" value="FME" />
+          <Picker.Item label="ME" value="ME" />
+          <Picker.Item label="MECH" value="MECH" />
+          <Picker.Item label="MME" value="MME" />
+          <Picker.Item label="PE" value="PE" />
+          <Picker.Item label="MNC" value="MNC" />
+          <Picker.Item label="AGL" value="AGL" />
+          <Picker.Item label="AGP" value="AGP" />
         </Picker>
       </View>
 

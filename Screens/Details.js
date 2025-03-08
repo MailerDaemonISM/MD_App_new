@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, Image, ScrollView } from "react-native";
-import { Card, Title, Paragraph, List } from 'react-native-paper';
+import { Card, Title, Paragraph, List } from "react-native-paper";
 
 // Fetch placement data using the URL
 const fetchPlacementDetails = async (url) => {
@@ -8,7 +8,7 @@ const fetchPlacementDetails = async (url) => {
     const response = await fetch(url);
     const data = await response.json();
     console.log(data);
-    return data.result; // Return all the results
+    return data.result; // Assuming the API response contains a "result" key
   } catch (error) {
     console.error("Error fetching placement details:", error);
     return null;
@@ -16,32 +16,30 @@ const fetchPlacementDetails = async (url) => {
 };
 
 const Details = ({ route }) => {
-  const { id, year, url } = route.params; // Receive the data passed from the list
+ //id changed to company_name
+  const { company_name, url } = route.params;
   const [placementDetails, setPlacementDetails] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getPlacementDetails = async () => {
       setLoading(true);
-      setPlacementDetails(null);  // Clear previous data when changing placement
+      setPlacementDetails(null); // Clear previous data
 
       const data = await fetchPlacementDetails(url);
 
-      // Filter the data based on the 'id' passed in route.params
-      const details = data ? data.filter(item => item.id === id) : null;
-      
-      // Set the first item that matches the id
+      const details = data ? data.filter(item => item.company_name === company_name) : null;
+
       if (details && details.length > 0) {
         setPlacementDetails(details[0]);
       } else {
-        setPlacementDetails(null); // Handle case where no matching id is found
+        setPlacementDetails(null);
       }
-
       setLoading(false);
     };
 
     getPlacementDetails();
-  }, [url, id]);  // This ensures data is fetched whenever 'url' or 'id' changes
+  }, [url, company_name]);
 
   if (loading) {
     return (
@@ -62,7 +60,7 @@ const Details = ({ route }) => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Display Image if available */}
+      {/* Display image if available */}
       {placementDetails.image && placementDetails.image.url && (
         <Image
           source={{ uri: placementDetails.image.url }}
@@ -70,7 +68,7 @@ const Details = ({ route }) => {
         />
       )}
       
-      {/* Card for Placement Overview */}
+      {/* Placement Overview */}
       <Card style={styles.card}>
         <Title style={styles.title}>{placementDetails.name}</Title>
         <Paragraph style={styles.detail}>Role: {placementDetails.role}</Paragraph>
@@ -118,7 +116,7 @@ const Details = ({ route }) => {
         </List.Accordion>
       </List.Section>
 
-      {/* Accordion for Influence of */}
+      {/* Accordion for Influence */}
       <List.Section>
         <List.Accordion title="Influence of">
           <Paragraph style={styles.detail}>
