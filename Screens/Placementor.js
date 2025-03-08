@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { BackHandler } from 'react-native';
 import {
   ActivityIndicator,
   View,
@@ -9,31 +8,30 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
-  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
+
 let url = "";
+
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
-  
-
   if (year === "2024") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D";
   } else if (year === "2023") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D";
   } else if (year === "2022") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
-  } else if (year == "2021") {
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D";
+  } else if (year === "2021") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
-  } else if (year == "2020") {
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D";
+  } else if (year === "2020") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D";
   }
 
   try {
@@ -55,7 +53,6 @@ const PlacementList = () => {
   const [selectedBranch, setSelectedBranch] = useState("All");
   const navigation = useNavigation();
 
-
   useEffect(() => {
     const getData = async () => {
       setLoading(true);
@@ -70,10 +67,7 @@ const PlacementList = () => {
       }
     };
     getData();
-
-    
-
-  }, [selectedYear]); // Refetch data whenever the selected year changes
+  }, [selectedYear]);
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -86,12 +80,16 @@ const PlacementList = () => {
     setFilteredPlacements(filteredData);
   };
 
-  const navigateToDetails = (id, year) => {
-    navigation.navigate('Details', { id, year, url });
+  // Updated: Pass company_name (not id) to the Details screen
+  const navigateToDetails = (company_name, year) => {
+    navigation.navigate("Details", { company_name, year, url });
   };
 
   const renderCard = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigateToDetails(item.id, item.year, url)}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigateToDetails(item.company_name, item.year)}
+    >
       <View>
         <Image source={{ uri: item.imageUrl }} style={styles.companyLogo} />
       </View>
@@ -99,7 +97,7 @@ const PlacementList = () => {
         <Text style={styles.title}>{item.name}</Text>
         <Text style={styles.detail}>Role: {item.role}</Text>
         <Text>On Campus</Text>
-        <Text>Year : {item.year}</Text>
+        <Text>Year: {item.year}</Text>
       </View>
       <View style={styles.iconsContainer}>
         <TouchableOpacity style={styles.iconButton}>
@@ -230,9 +228,6 @@ const styles = StyleSheet.create({
   detail: {
     fontSize: 14,
     color: "#555",
-  },
-  cardcontainer: {
-    padding: 20,
   },
   iconsContainer: {
     flexDirection: "column",
