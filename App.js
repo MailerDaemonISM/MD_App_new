@@ -68,16 +68,14 @@ const CustomDrawerContent = (props) => {
           <Text className="text-base ml-6 text-gray-400">Lost and Found</Text>
         </TouchableOpacity>
         </View>
+  
         <View className="flex flex-row items-center h-7 mb-5">
           <Image
-            source={require('./assets/lostandfound.png')} // Replace with your image URL
-            className="h-6 w-6  border-radius-50 ml-7 opacity-50" 
-          />
-        <TouchableOpacity onPress={() => props.navigation.navigate('Placementor')}>
-          <Text className="text-base ml-6 text-gray-400">Placementor</Text>
-        </TouchableOpacity>
+          source={require('./assets/placementor.png')} className="h-6 w-6  border-radius-50 ml-7 opacity-50" ></Image>
+              <TouchableOpacity onPress={() => props.navigation.navigate('Placementor')}>
+                        <Text className="text-base ml-6 text-gray-400">Placementor</Text>
+                      </TouchableOpacity>
         </View>
-
       </View>
 
       <View className="mt-5 border-b-2 border-gray-300 my-2 h-100">
