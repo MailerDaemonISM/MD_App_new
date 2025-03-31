@@ -6,10 +6,19 @@ import {
   StyleSheet,
   ScrollView,
   BackHandler,
+  Image,
 } from "react-native";
 import { Card, Title, Paragraph, List } from "react-native-paper";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
+
+const getImageUrl = (image) => {
+  if (!image || !image.asset || !image.asset._ref) return null;
+  const imageId = image.asset._ref.split("-")[1];
+  const dimensions = image.asset._ref.split("-")[2];
+  const format = image.asset._ref.split("-")[3];
+  return `https://cdn.sanity.io/images/zltsypm6/production/${imageId}-${dimensions}.${format}`;
+};
 
 const fetchPlacementDetails = async (url) => {
   try {
@@ -81,19 +90,17 @@ const Details = ({ route }) => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
       <Card style={styles.card}>
+        {placementDetails.image && (
+          <Image
+            source={{ uri: getImageUrl(placementDetails.image) }}
+            style={styles.companyLogo}
+          />
+        )}
         <Title style={styles.title}>{placementDetails.name}</Title>
-        <Paragraph style={styles.detail}>
-          Role: {placementDetails.role}
-        </Paragraph>
-        <Paragraph style={styles.detail}>
-          Company: {placementDetails.company_name}
-        </Paragraph>
-        <Paragraph style={styles.detail}>
-          CGPA: {placementDetails.CGPA}
-        </Paragraph>
-        <Paragraph style={styles.detail}>
-          Year: {placementDetails.year}
-        </Paragraph>
+        <Paragraph style={styles.detail}>Role: {placementDetails.role}</Paragraph>
+        <Paragraph style={styles.detail}>Company: {placementDetails.company_name}</Paragraph>
+        <Paragraph style={styles.detail}>CGPA: {placementDetails.CGPA}</Paragraph>
+        <Paragraph style={styles.detail}>Year: {placementDetails.year}</Paragraph>
         <Paragraph style={styles.detail}>
           Eligible Branch: {placementDetails.eligible_branch}
         </Paragraph>
@@ -106,16 +113,13 @@ const Details = ({ route }) => {
       <SelectionProcessSection data={placementDetails.selection_process} />
 
       {/* Takeaways */}
-      <Section
-        title="Takeaways"
-        data={{ "Key Takeaways": placementDetails.takeaways }}
-      />
+      <Section title="Takeaways" data={{ "Key Takeaways": placementDetails.takeaways }} />
 
       {/* Test Series */}
-      <Section
-        title="Test Preparation"
-        data={{ "Test Series": placementDetails.test_series }}
-      />
+      <Section title="Test Preparation" data={{ "Test Series": placementDetails.test_series }} />
+
+      {/* Resources Section */}
+      <ResourcesSection data={placementDetails.resources} />
 
       {/* Influence Of */}
       <InfluenceOfSection data={placementDetails.influence_of} />
@@ -123,42 +127,46 @@ const Details = ({ route }) => {
   );
 };
 
-// Section for Interview Rounds
+// Parse Portable Text into plain text
+const parsePortableText = (blocks) => {
+  if (!Array.isArray(blocks)) return "";
+  return blocks
+    .map((block) => {
+      if (block._type === "block" && Array.isArray(block.children)) {
+        return block.children.map((span) => span.text).join("");
+      }
+      return "";
+    })
+    .join("\n\n");
+};
+
+// ----------------- Section Components -----------------
+// Interview Rounds Section
 const InterviewRoundsSection = ({ data }) => (
   <>
     <Text style={styles.sectionHeading}>Interview Rounds</Text>
     <List.Section>
       {data ? (
         Object.entries(data).map(([key, value], index) => (
-          <List.Accordion
-            key={key}
-            title={`Round ${index + 1}`}
-            titleStyle={styles.accordionTitle}
-          >
+          <List.Accordion key={key} title={`Round ${index + 1}`} titleStyle={styles.accordionTitle}>
             <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
         ))
       ) : (
-        <Paragraph style={styles.detail}>
-          No interview round details available.
-        </Paragraph>
+        <Paragraph style={styles.detail}>No interview round details available.</Paragraph>
       )}
     </List.Section>
   </>
 );
 
-// Section for Selection Process
+// Selection Process Section
 const SelectionProcessSection = ({ data }) => {
   if (!data) return null;
-
-  // Define key mapping
   const keyMap = {
     step1: "Round 1",
     step2: "Group Discussion Round",
     step3: "Interview Round",
   };
-
-  // Sort keys to maintain correct order (step1, step2, step3)
   const sortedKeys = Object.keys(data).sort();
 
   return (
@@ -166,11 +174,7 @@ const SelectionProcessSection = ({ data }) => {
       <Text style={styles.sectionHeading}>Selection Process</Text>
       <List.Section>
         {sortedKeys.map((key) => (
-          <List.Accordion
-            key={key}
-            title={keyMap[key] || key}
-            titleStyle={styles.accordionTitle}
-          >
+          <List.Accordion key={key} title={keyMap[key] || key} titleStyle={styles.accordionTitle}>
             <Text style={styles.accordionText}>{data[key]}</Text>
           </List.Accordion>
         ))}
@@ -179,40 +183,21 @@ const SelectionProcessSection = ({ data }) => {
   );
 };
 
-
-
-// Section for Influence Of
-const InfluenceOfSection = ({ data }) => {
-  if (!data) return null;
-
-  // Define fixed headings for Influence Of section
-  const keyMap = {
-    projects: "Projects/Previous Internships",
-    pors: "PORs",
-  };
-
+// Resources Section
+const ResourcesSection = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  const parsedText = parsePortableText(data);
   return (
     <>
-      <Text style={styles.sectionHeading}>Influence Of</Text>
+      <Text style={styles.sectionHeading}>Resources</Text>
       <List.Section>
-        {Object.entries(data).map(([key, value]) => (
-          <List.Accordion
-            key={key}
-            title={keyMap[key] || key} // Use predefined headings if available
-            titleStyle={styles.accordionTitle}
-          >
-            <Text style={styles.accordionText}>{value}</Text>
-          </List.Accordion>
-        ))}
+        <List.Accordion title="Questions and Links" titleStyle={styles.accordionTitle}>
+          <Text style={styles.accordionText}>{parsedText}</Text>
+        </List.Accordion>
       </List.Section>
     </>
   );
 };
-
-
-
-
-
 
 // Reusable Section Component
 const Section = ({ title, data }) => (
@@ -221,22 +206,37 @@ const Section = ({ title, data }) => (
     <List.Section>
       {data ? (
         Object.entries(data).map(([key, value]) => (
-          <List.Accordion
-            key={key}
-            title={key}
-            titleStyle={styles.accordionTitle}
-          >
+          <List.Accordion key={key} title={key} titleStyle={styles.accordionTitle}>
             <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
         ))
       ) : (
-        <Paragraph style={styles.detail}>
-          No {title.toLowerCase()} details available.
-        </Paragraph>
+        <Paragraph style={styles.detail}>No {title.toLowerCase()} details available.</Paragraph>
       )}
     </List.Section>
   </>
 );
+
+// Influence Of Section
+const InfluenceOfSection = ({ data }) => {
+  if (!data) return null;
+  const keyMap = {
+    projects: "Projects/Previous Internships",
+    pors: "PORs",
+  };
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Influence Of</Text>
+      <List.Section>
+        {Object.entries(data).map(([key, value]) => (
+          <List.Accordion key={key} title={keyMap[key] || key} titleStyle={styles.accordionTitle}>
+            <Text style={styles.accordionText}>{value}</Text>
+          </List.Accordion>
+        ))}
+      </List.Section>
+    </>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -254,7 +254,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 10,
-  },
+    color: "#000000",
+  }
+  ,
   noDataContainer: {
     flex: 1,
     justifyContent: "center",
@@ -278,11 +280,11 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   card: {
-    marginBottom: 20,
-    backgroundColor: "#ffffff",
-    padding: 20,
+    marginVertical: 10,
+    padding: 15,
+    backgroundColor: "#fff",
     borderRadius: 12,
-    elevation: 5,
+    elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
@@ -291,22 +293,34 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "rgba(238, 109, 152, 1)", // Apply the specified color
+    color: "#98DDFF",
+    color: "black",
     marginVertical: 15,
     borderBottomWidth: 2,
-    borderBottomColor: "rgba(238, 109, 152, 1)", // Matching border color
-    paddingBottom: 5,
+    borderBottomColor: "black",
   },
   accordionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-  },
+    padding: 10,
+    // backgroundColor: "#F5F5
+    // F5", // Light background
+    borderRadius: 8,
+  }
+  ,
   accordionText: {
     fontSize: 14,
     color: "#333",
     paddingHorizontal: 15,
     paddingVertical: 10,
     fontStyle: "italic",
+  },
+  companyLogo: {
+    width: 120,
+    height: 120,
+    resizeMode: "contain",
+    alignSelf:"center",
+    marginBottom: -9, 
   },
 });
 
