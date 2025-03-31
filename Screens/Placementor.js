@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from "react";
+<<<<<<< HEAD
+=======
+import { BackHandler } from "react-native";
+>>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
 import {
   ActivityIndicator,
   View,
@@ -58,8 +62,9 @@ const PlacementList = () => {
       setLoading(true);
       try {
         const data = await fetchPlacementData(selectedYear);
-        setPlacements(data);
-        setFilteredPlacements(data);
+        const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
+        setPlacements(sortedData);
+        setFilteredPlacements(sortedData);
       } catch (error) {
         console.error("Error fetching placement data:", error);
       } finally {
@@ -67,32 +72,95 @@ const PlacementList = () => {
       }
     };
     getData();
+<<<<<<< HEAD
   }, [selectedYear]);
+=======
+  }, [selectedYear]); // Refetch data whenever the selected year changes
+>>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
 
   const handleSearch = (text) => {
     setSearchText(text);
-    const filteredData = placements.filter(
-      (item) =>
-        item.name.toLowerCase().includes(text.toLowerCase()) ||
-        item.company_name.toLowerCase().includes(text.toLowerCase()) ||
-        item.role.toLowerCase().includes(text.toLowerCase())
-    );
-    setFilteredPlacements(filteredData);
+    filterPlacements(text, selectedBranch);
+    // const filteredData = placements.filter(
+    //   (item) =>
+    //     item.name.toLowerCase().includes(text.toLowerCase()) ||
+    //     item.company_name.toLowerCase().includes(text.toLowerCase()) ||
+    //     item.role.toLowerCase().includes(text.toLowerCase())
+    // );
+    // setFilteredPlacements(filteredData);
   };
 
+<<<<<<< HEAD
   // Updated: Pass company_name (not id) to the Details screen
   const navigateToDetails = (company_name, year) => {
     navigation.navigate("Details", { company_name, year, url });
+=======
+  const handleBranchChange = (branch) => {
+    setSelectedBranch(branch);
+    filterPlacements(searchText, branch);
+  };
+
+  const filterPlacements = (text = "", branch = "All") => {
+    const filteredData = placements.filter((item) => {
+      // Ensure all properties exist before calling .toLowerCase()
+      const name = item.name ? item.name.toLowerCase() : "";
+      const companyName = item.company_name ? item.company_name.toLowerCase() : "";
+      const role = item.role ? item.role.toLowerCase() : "";
+  
+      const matchesSearch =
+        name.includes(text.toLowerCase()) ||
+        companyName.includes(text.toLowerCase()) ||
+        role.includes(text.toLowerCase());
+  
+      // Ensure eligible_branch exists before calling .toLowerCase()
+      const eligibleBranches = item.eligible_branch
+        ? item.eligible_branch.toLowerCase().split(",")
+        : [];
+  
+      const isBranchEligible =
+        branch === "All" ||
+        eligibleBranches.includes(branch.toLowerCase()) ||
+        eligibleBranches.includes("open to all");
+  
+      return matchesSearch && isBranchEligible;
+    });
+  
+    setFilteredPlacements(filteredData);
+  };
+  
+
+  const navigateToDetails = (company_name, year, url) => {
+    navigation.navigate("Details", { company_name, year, url });
+  };
+
+  const getImageUrl = (image) => {
+    if (!image || !image.asset || !image.asset._ref) return null;
+
+    // Extract the image ID and format from the _ref string
+    const imageId = image.asset._ref.split("-")[1];
+    const dimensions = image.asset._ref.split("-")[2];
+    const format = image.asset._ref.split("-")[3];
+
+    return `https://cdn.sanity.io/images/zltsypm6/production/${imageId}-${dimensions}.${format}`;
+>>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
   };
 
   const renderCard = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
+<<<<<<< HEAD
       onPress={() => navigateToDetails(item.company_name, item.year)}
+=======
+      onPress={() => navigateToDetails(item.company_name, item.year, url)}
+>>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
     >
       <View>
-        <Image source={{ uri: item.imageUrl }} style={styles.companyLogo} />
+        <Image
+          source={{ uri: getImageUrl(item.image) }}
+          style={styles.companyLogo}
+        />
       </View>
+
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.name}</Text>
         <Text style={styles.detail}>Role: {item.role}</Text>
@@ -151,11 +219,23 @@ const PlacementList = () => {
         <Picker
           selectedValue={selectedBranch}
           style={styles.picker}
-          onValueChange={(itemValue) => setSelectedBranch(itemValue)}
+          onValueChange={handleBranchChange}
         >
           <Picker.Item label="All Branches" value="All" />
           <Picker.Item label="CSE" value="CSE" />
           <Picker.Item label="ECE" value="ECE" />
+          <Picker.Item label="EE" value="EE" />
+          <Picker.Item label="CE" value="CE" />
+          <Picker.Item label="EP" value="EP" />
+          <Picker.Item label="ESE" value="ESE" />
+          <Picker.Item label="FME" value="FME" />
+          <Picker.Item label="ME" value="ME" />
+          <Picker.Item label="MECH" value="MECH" />
+          <Picker.Item label="MME" value="MME" />
+          <Picker.Item label="PE" value="PE" />
+          <Picker.Item label="MNC" value="MNC" />
+          <Picker.Item label="AGL" value="AGL" />
+          <Picker.Item label="AGP" value="AGP" />
         </Picker>
       </View>
 
