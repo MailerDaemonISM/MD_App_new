@@ -51,29 +51,8 @@ const articles = [
 
 const HomeScreen = () => {
   return (
-    <View style={styles.container}>
-
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Menu icon (optional) */}
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="menu-outline" size={24} color="#333" />
-        </TouchableOpacity>
-
-        {/* Title (header: font size 17) */}
-        <Text style={styles.headerTitle}>Mailer Daemon</Text>
-
-        {/* Right Icons */}
-        <View style={styles.headerRightIcons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="search-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="notifications-outline" size={24} color="#333" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
+    <View style={styles.container}> 
+       
       {/* Scrollable List of Articles */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {articles.map((item) => (
@@ -139,19 +118,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   headerTitle: {
-    flex: 1,
     fontSize: 17, // Header text size
     fontWeight: '700',
-    textAlign: 'left',
-    marginLeft: 8,
     color: '#000',
   },
-  headerRightIcons: {
+  headerIcons: {
     flexDirection: 'row',
   },
-
-  /* Icon Button (Menu, Search, Notification) */
-  iconButton: {
+  headerIconButton: {
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
@@ -173,15 +147,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth:0.1,
   },
   cardTextContainer: {
     flex: 1,
     padding: 12,
     justifyContent: 'center',
   },
-
   /* Titles = 17, Paragraph = 14, Tags = 10 */
   cardTitle: {
     fontSize: 17, // treat card title as a "header"
@@ -216,5 +188,9 @@ const styles = StyleSheet.create({
     width: 50,
     alignItems: 'center',
     justifyContent: 'space-around',
+  },
+  iconButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
 });
