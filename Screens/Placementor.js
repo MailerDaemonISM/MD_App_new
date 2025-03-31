@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
-<<<<<<< HEAD
-=======
 import { BackHandler } from "react-native";
->>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
 import {
   ActivityIndicator,
   View,
@@ -12,30 +9,29 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
-
 let url = "";
-
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
   if (year === "2024") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D";
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   } else if (year === "2023") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D";
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   } else if (year === "2022") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D";
-  } else if (year === "2021") {
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  } else if (year == "2021") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D";
-  } else if (year === "2020") {
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  } else if (year == "2020") {
     url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D";
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   }
 
   try {
@@ -72,11 +68,7 @@ const PlacementList = () => {
       }
     };
     getData();
-<<<<<<< HEAD
-  }, [selectedYear]);
-=======
   }, [selectedYear]); // Refetch data whenever the selected year changes
->>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -90,11 +82,6 @@ const PlacementList = () => {
     // setFilteredPlacements(filteredData);
   };
 
-<<<<<<< HEAD
-  // Updated: Pass company_name (not id) to the Details screen
-  const navigateToDetails = (company_name, year) => {
-    navigation.navigate("Details", { company_name, year, url });
-=======
   const handleBranchChange = (branch) => {
     setSelectedBranch(branch);
     filterPlacements(searchText, branch);
@@ -142,17 +129,12 @@ const PlacementList = () => {
     const format = image.asset._ref.split("-")[3];
 
     return `https://cdn.sanity.io/images/zltsypm6/production/${imageId}-${dimensions}.${format}`;
->>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
   };
 
   const renderCard = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-<<<<<<< HEAD
-      onPress={() => navigateToDetails(item.company_name, item.year)}
-=======
       onPress={() => navigateToDetails(item.company_name, item.year, url)}
->>>>>>> 6a3382d346a3d3dd5747b2dfd0aaf1c2238fe489
     >
       <View>
         <Image
@@ -165,7 +147,7 @@ const PlacementList = () => {
         <Text style={styles.title}>{item.name}</Text>
         <Text style={styles.detail}>Role: {item.role}</Text>
         <Text>On Campus</Text>
-        <Text>Year: {item.year}</Text>
+        <Text>Year : {item.year}</Text>
       </View>
       <View style={styles.iconsContainer}>
         <TouchableOpacity style={styles.iconButton}>
@@ -308,6 +290,9 @@ const styles = StyleSheet.create({
   detail: {
     fontSize: 14,
     color: "#555",
+  },
+  cardcontainer: {
+    padding: 20,
   },
   iconsContainer: {
     flexDirection: "column",
