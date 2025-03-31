@@ -1,13 +1,30 @@
-// screens/HomeScreen.js
 import React from 'react';
-import { View, Text, Button } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import FloatingButton from '../components/floatingButton'; // Import Floating Button Component
 
 const HomeScreen = ({ navigation }) => {
   return (
-    <View className='flex-1 justify-center items-center bg-gray-300'>
-      <Text >WELCOME TO MAILER DAEMON APP!</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>WELCOME TO MAILER DAEMON APP!</Text>
+
+      {/* Floating Button */}
+      <FloatingButton />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff', 
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+});
 
 export default HomeScreen;
