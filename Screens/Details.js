@@ -123,7 +123,30 @@ const Details = ({ route }) => {
 
       {/* Influence Of */}
       <InfluenceOfSection data={placementDetails.influence_of} />
+
+      {/* Selected Candidates Section */}
+      <SelectedCandidatesSection data={placementDetails.selected_candidates} />
     </ScrollView>
+  );
+};
+
+// Selected Candidates Section
+const SelectedCandidatesSection = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Selected Candidates</Text>
+      <List.Section>
+        {data.map((candidate, index) => (
+          <List.Item
+            key={index}
+            title={candidate.name}
+            description={`CGPA: ${candidate.CGPA} | Branch: ${candidate.branch}`}
+            left={(props) => <MaterialIcons name="person" size={24} color="gray" />}
+          />
+        ))}
+      </List.Section>
+    </>
   );
 };
 
@@ -255,8 +278,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 10,
     color: "#000000",
-  }
-  ,
+  },
   noDataContainer: {
     flex: 1,
     justifyContent: "center",
@@ -293,21 +315,18 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#98DDFF",
-    color: "black",
+    color: "rgba(238, 109, 152, 1)",
     marginVertical: 15,
     borderBottomWidth: 2,
-    borderBottomColor: "black",
+    borderBottomColor: "rgba(238, 109, 152, 1)",
   },
   accordionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     padding: 10,
-    // backgroundColor: "#F5F5
-    // F5", // Light background
+    backgroundColor: "#F5F5F5", // Light background
     borderRadius: 8,
-  }
-  ,
+  },
   accordionText: {
     fontSize: 14,
     color: "#333",
@@ -319,8 +338,8 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     resizeMode: "contain",
-    alignSelf:"center",
-    marginBottom: -9, 
+    alignSelf: "center",
+    marginBottom: -9,
   },
 });
 
