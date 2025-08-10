@@ -125,7 +125,7 @@ const Details = ({ route }) => {
       <InfluenceOfSection data={placementDetails.influence_of} />
 
       {/* Selected Candidates Section */}
-      <SelectedCandidatesSection data={placementDetails.selected_candidates} />
+      <SelectedCandidatesSection data={placementDetails.selected} />
     </ScrollView>
   );
 };
@@ -133,18 +133,24 @@ const Details = ({ route }) => {
 // Selected Candidates Section
 const SelectedCandidatesSection = ({ data }) => {
   if (!data || data.length === 0) return null;
+
   return (
     <>
       <Text style={styles.sectionHeading}>Selected Candidates</Text>
       <List.Section>
-        {data.map((candidate, index) => (
-          <List.Item
-            key={index}
-            title={candidate.name}
-            description={`CGPA: ${candidate.CGPA} | Branch: ${candidate.branch}`}
-            left={(props) => <MaterialIcons name="person" size={24} color="gray" />}
-          />
-        ))}
+        <List.Accordion
+          title="View Candidates"
+          titleStyle={styles.accordionTitle}
+          left={props => <MaterialIcons {...props} name="people" size={24} color="gray" />}
+        >
+          {data.map((name, index) => (
+            <List.Item
+              key={index}
+              title={name}
+          left={props => <MaterialIcons {...props} name="people" size={24} color="gray" />}
+            />
+          ))}
+        </List.Accordion>
       </List.Section>
     </>
   );
