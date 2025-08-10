@@ -6,11 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Share, // <-- import Share API
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import FloatingButton from "../components/floatingButton";
-import { client } from "../sanity"; // Ensure your Sanity client is properly configured
+import { client } from "../sanity";
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -37,12 +38,28 @@ const HomeScreen = () => {
         setPosts((prevPosts) => [...prevPosts, ...result]);
         setCurrentPage((prevPage) => prevPage + 1);
       } else {
-        setHasMorePosts(false); // No more posts to fetch
+        setHasMorePosts(false);
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Share button handler
+  const onShare = async (post) => {
+    try {
+      await Share.share({
+        title: post.title,
+        message:
+          `${post.title}\n\n${
+            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
+            "No content available"
+          }\n\nShared via Mailer Daemon`,
+      });
+    } catch (error) {
+      console.error("Error sharing post:", error);
     }
   };
 
@@ -52,7 +69,11 @@ const HomeScreen = () => {
       <View style={styles.cardTextContainer}>
         <Text style={styles.cardTitle}>{item.title}</Text>
         <Text style={styles.cardCategory}>Category</Text>
-        <Text style={styles.cardDescription}>
+        <Text
+          style={styles.cardDescription}
+          numberOfLines={3}
+          ellipsizeMode="tail"
+        >
           {item.body?.[0]?.children?.map((child) => child.text).join(" ") ||
             "No content available"}
         </Text>
@@ -70,7 +91,10 @@ const HomeScreen = () => {
         <TouchableOpacity style={styles.iconButton}>
           <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => onShare(item)} // <-- share handler
+        >
           <Icon name="share-social-outline" size={20} color="#333" />
         </TouchableOpacity>
       </View>
@@ -81,18 +105,8 @@ const HomeScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        {/* <TouchableOpacity style={styles.iconButton}>
-          <Icon name="menu-outline" size={24} color="#333" />
-        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-        <View style={styles.headerRightIcons}>
-          {/* <TouchableOpacity style={styles.iconButton}>
-            <Icon name="search-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="notifications-outline" size={24} color="#333" />
-          </TouchableOpacity> */}
-        </View>
+        <View style={styles.headerRightIcons}></View>
       </View>
 
       {/* List of Posts */}
@@ -131,17 +145,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
-    paddingBottom: 0, // Space for Floating Button
+    paddingBottom: 0,
   },
-
-  /* Header Styles */
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
     backgroundColor: "#FFFFFF",
-    // elevation: 2,
     paddingHorizontal: 16,
   },
   headerTitle: {
@@ -152,51 +163,72 @@ const styles = StyleSheet.create({
   headerRightIcons: {
     flexDirection: "row",
   },
-
-  /* Icon Button */
   iconButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
   },
-
-  /* List Content */
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 80, // Space for Floating Button
-  },
-
-  /* Card Styles */
   cardContainer: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
     overflow: "hidden",
-    shadowColor: "#000000",
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 6,
-    // elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-
   cardTextContainer: {
     flex: 3,
     paddingVertical: 16,
     paddingHorizontal: 20,
   },
-
-  /* Titles = Header (20), Paragraph (14), Tags (10) */
   cardTitle: {
-    fontSize: 17, // Treat card title as a "header"
+    fontSize: 17,
     fontWeight: "bold",
     color: "#333333",
     marginBottom: 4,
   },
-
   cardCategory: {
-    fontSize: 10, // Treat category as a "tag"
+    fontSize: 10,
     fontStyle: "italic",
     color: "#666",
-    marginBottom: "10px",
+    marginBottom: 6,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 10,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  cardLabel: {
+    fontSize: 12,
+    color: "#777",
+  },
+  cardTime: {
+    fontSize: 12,
+    color: "#777",
+  },
+  sideBarContainer: {
+    flex: 0.5,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingFooter: {
+    padding: 10,
+    alignItems: "center",
   },
 });

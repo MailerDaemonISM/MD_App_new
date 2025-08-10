@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Share
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "@react-native-picker/picker";
@@ -43,6 +44,22 @@ const fetchPlacementData = async (year) => {
     return [];
   }
 };
+
+// Share button handler
+  const onShare = async (post) => {
+    try {
+      await Share.share({
+        title: post.title,
+        message:
+          `${post.title}\n\n${
+            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
+            "No content available"
+          }\n\nShared via Mailer Daemon`,
+      });
+    } catch (error) {
+      console.error("Error sharing post:", error);
+    }
+  };
 
 const PlacementList = () => {
   const [placements, setPlacements] = useState([]);
@@ -99,7 +116,7 @@ const PlacementList = () => {
         companyName.includes(text.toLowerCase()) ||
         role.includes(text.toLowerCase());
   
-      // Ensure eligible_branch exists before calling .toLowerCase()
+
       const eligibleBranches = item.eligible_branch
         ? item.eligible_branch.toLowerCase().split(",")
         : [];
@@ -151,16 +168,16 @@ const PlacementList = () => {
       </View>
       <View style={styles.iconsContainer}>
         <TouchableOpacity style={styles.iconButton}>
-          <Icon name="bookmark-border" size={20} color="#fff" />
+          <Icon name="bookmark-border" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Icon name="share" size={20} color="#fff" />
+          <Icon name="share" size={20} color="#333" onPress={() => onShare(item)} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Icon name="info" size={20} color="#fff" />
+          <Icon name="info" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Icon name="open-in-new" size={20} color="#fff" />
+          <Icon name="open-in-new" size={20} color="#333" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -261,27 +278,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    paddingLeft: 10,
-    borderRadius: 12,
-    marginVertical: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-    alignItems: "center",
-  },
-  companyLogo: {
-    width: 120,
-    height: 120,
-    resizeMode: "contain",
-  },
+  flexDirection: "row",
+  backgroundColor: "#fff",
+  borderRadius: 12,
+  marginVertical: 8,
+  marginHorizontal: 10,
+  overflow: "hidden",
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.05)", // light subtle border
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3, // Android shadow
+  alignItems: "center",
+},
+
+ companyLogo: {
+  width: 100, // slightly smaller to match thin style
+  height: 100,
+  resizeMode: "contain",
+  marginLeft: 8,
+},
   cardContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
+  flex: 1,
+  marginLeft: 12,
+  paddingVertical: 8,
+},
   title: {
     fontSize: 16,
     fontWeight: "bold",
@@ -294,13 +317,14 @@ const styles = StyleSheet.create({
   cardcontainer: {
     padding: 20,
   },
-  iconsContainer: {
-    flexDirection: "column",
-    backgroundColor: "#98DDFF",
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    padding: 5,
-  },
+ iconsContainer: {
+  flexDirection: "column",
+  backgroundColor: "#98DDFF",
+  borderTopRightRadius: 12,
+  borderBottomRightRadius: 12,
+  padding: 5,
+  justifyContent: "center",
+},
   iconButton: {
     padding: 10,
     alignItems: "center",
