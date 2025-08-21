@@ -1,12 +1,75 @@
-// screens/HomeScreen.js
-import React from 'react';
-import { View, Text, Button } from 'react-native';
+// screens/ContactUs.js
+import React from "react";
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from "react-native";
 
-const ContactUs = ({ navigation }) => {
+const ContactUs = () => {
   return (
-    <View className='flex-1 justify-center items-center bg-gray-300'>
-      <Text>Contact Us Screen</Text>
-    </View>
+    <ScrollView className="flex-1 bg-white px-5 py-8">
+      {/* Header */}
+      <Text className="text-xl font-bold mb-4">Important Contacts</Text>
+
+      {/* Search Box */}
+      <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-4">
+        <Image
+          source={{
+            uri: "https://img.icons8.com/ios-filled/50/000000/search.png",
+          }}
+          className="w-5 h-5 opacity-50"
+        />
+        <TextInput
+          placeholder="Search Contacts"
+          placeholderTextColor="#9ca3af"
+          className="ml-2 flex-1 text-gray-700"
+        />
+      </View>
+
+      {/* Description */}
+      <Text className="text-gray-500 mb-6">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+        tempor incididunt ut labore et
+      </Text>
+
+      {/* Contact Cards */}
+      <TouchableOpacity className="flex-row items-center bg-gray-100 rounded-2xl px-5 py-4 mb-4">
+        <Image
+          source={{
+            uri: "https://img.icons8.com/ios/50/000000/department.png",
+          }}
+          className="w-7 h-7 mr-4"
+        />
+        <Text className="text-lg text-gray-700">Administration</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity className="flex-row items-center bg-gray-100 rounded-2xl px-5 py-4 mb-4">
+        <Image
+          source={{
+            uri: "https://img.icons8.com/ios/50/000000/training.png",
+          }}
+          className="w-7 h-7 mr-4"
+        />
+        <Text className="text-lg text-gray-700">Faculty</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity className="flex-row items-center bg-gray-100 rounded-2xl px-5 py-4 mb-4">
+        <Image
+          source={{
+            uri: "https://img.icons8.com/ios/50/000000/security-checked.png",
+          }}
+          className="w-7 h-7 mr-4"
+        />
+        <Text className="text-lg text-gray-700">Wardens</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity className="flex-row items-center bg-gray-100 rounded-2xl px-5 py-4 mb-6">
+        <Image
+          source={{
+            uri: "https://img.icons8.com/ios/50/000000/conference.png",
+          }}
+          className="w-7 h-7 mr-4"
+        />
+        <Text className="text-lg text-gray-700">Gymkhana</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 

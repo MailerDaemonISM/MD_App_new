@@ -33,6 +33,13 @@ export default defineType({
         hotspot: true,
       },
     }),
+     defineField({
+  name: 'hashtags',
+  title: 'Hashtags',
+  type: 'array',
+  of: [{ type: 'reference', to: { type: 'hashtags' } }],
+}),
+
     defineField({
       name: 'categories',
       title: 'Categories',

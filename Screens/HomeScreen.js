@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Modal,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -22,6 +24,7 @@ const HomeScreen = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPost, setSelectedPost] = useState(null); // For overlay
   const postsPerPage = 5;
 
   useEffect(() => {
@@ -36,7 +39,14 @@ const HomeScreen = () => {
       const query = `*[_type == "post"] | order(_createdAt desc) [${
         (currentPage - 1) * postsPerPage
       }...${currentPage * postsPerPage}] {
-        _id, title, body, _createdAt
+        _id,
+        title,
+        body,
+        _createdAt,
+        hashtags[]->{
+          _id,
+          hashtag
+        }
       }`;
 
       const result = await client.fetch(query);
@@ -61,33 +71,57 @@ const HomeScreen = () => {
     const sideBarColor = colorCycle[index % 4];
 
     return (
-      <View style={styles.cardContainer}>
-        <View style={styles.cardTextContainer}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardCategory}>Category</Text>
-          <Text numberOfLines={3} ellipsizeMode="tail" style={styles.cardDescription}>
-            {description || "No content available"}
-          </Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardLabel}>Campus Daemon</Text>
-            <Text style={styles.cardTime}>
-              {new Date(item._createdAt).toLocaleString()}
+      <TouchableOpacity onPress={() => setSelectedPost(item)}>
+        <View style={styles.cardContainer}>
+          <View style={styles.cardTextContainer}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardCategory}>Category</Text>
+            <Text
+              numberOfLines={3}
+              ellipsizeMode="tail"
+              style={styles.cardDescription}
+            >
+              {description || "No content available"}
             </Text>
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardLabel}>
+                {item.hashtags?.length
+                  ? (() => {
+                      const maxToShow = 2;
+                      const tagsToShow = item.hashtags
+                        .slice(0, maxToShow)
+                        .map((tag) => `${tag.hashtag}`);
+                      const extraCount = item.hashtags.length - maxToShow;
+
+                      return extraCount > 0
+                        ? [...tagsToShow, `+${extraCount} more`].join("\n")
+                        : tagsToShow.join("\n");
+                    })()
+                  : "No hashtags"}
+              </Text>
+              <Text style={styles.cardTime}>
+                {new Date(item._createdAt).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.sideBarContainer,
+              { backgroundColor: sideBarColor },
+            ]}
+          >
+            <TouchableOpacity style={styles.iconButton}>
+              <Icon name="bookmark-outline" size={20} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <Icon name="share-social-outline" size={20} color="#333" />
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="bookmark-outline" size={20} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="share-social-outline" size={20} color="#333" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -100,7 +134,10 @@ const HomeScreen = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
         <View style={styles.headerRightIcons}>
-          <TouchableOpacity onPress={() => setSearchVisible(!searchVisible)} style={styles.iconButton}>
+          <TouchableOpacity
+            onPress={() => setSearchVisible(!searchVisible)}
+            style={styles.iconButton}
+          >
             <Icon name="search-outline" size={24} color="#333" />
           </TouchableOpacity>
         </View>
@@ -117,7 +154,7 @@ const HomeScreen = () => {
 
       {isLoading && posts.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0000ff" />
+          <ActivityIndicator size="large" color="#333" />
         </View>
       ) : (
         <FlatList
@@ -129,7 +166,7 @@ const HomeScreen = () => {
           ListFooterComponent={
             isLoading && (
               <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color="#0000ff" />
+                <ActivityIndicator size="small" color="#333" />
                 <Text>Loading more posts...</Text>
               </View>
             )
@@ -138,6 +175,46 @@ const HomeScreen = () => {
       )}
 
       <FloatingButton />
+
+      {/* Overlay for post details */}
+      <Modal
+  visible={!!selectedPost}
+  animationType="slide"
+  transparent
+  onRequestClose={() => setSelectedPost(null)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      {/* Close Button with post color */}
+      <TouchableOpacity
+        style={[
+          styles.closeButton,
+          { backgroundColor: colorCycle[selectedPost?.index % colorCycle.length] }
+        ]}
+        onPress={() => setSelectedPost(null)}
+      >
+        <Icon name="close" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+      <Text style={styles.modalCategory}>Category</Text>
+      <Text style={styles.modalDescription}>
+        {selectedPost?.body?.[0]?.children
+          ?.map((child) => child.text)
+          .join(" ") || "No content available"}
+      </Text>
+      <Text style={styles.modalHashtags}>
+        {selectedPost?.hashtags?.length
+          ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
+          : "No hashtags"}
+      </Text>
+      <Text style={styles.modalTime}>
+        {new Date(selectedPost?._createdAt).toLocaleString()}
+      </Text>
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 };
@@ -149,7 +226,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
-    paddingBottom: 0,
   },
   header: {
     flexDirection: "row",
@@ -184,12 +260,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     overflow: "hidden",
-    borderColor: "#ddd",       
+    borderColor: "#ddd",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,           
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,                 
+    elevation: 3,
   },
   cardTextContainer: {
     flex: 3,
@@ -217,7 +293,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 4,
-  
   },
   cardLabel: {
     fontSize: 12,
@@ -241,5 +316,56 @@ const styles = StyleSheet.create({
   loadingFooter: {
     paddingVertical: 20,
     alignItems: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  modalCategory: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 12,
+  },
+  modalBody: {
+    fontSize: 14,
+    color: "#444",
+    marginBottom: 12,
+  },
+  modalHashtags: {
+    paddingTop: 12,
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 12,
+  },
+  modalTime: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 16,
+  },
+  closeButton: {
+  position: "absolute",
+  top: 15,
+  right: 15,
+  padding: 8,
+  borderRadius: 20,
+  alignItems: "center",
+  justifyContent: "center",
+},
+  closeButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });

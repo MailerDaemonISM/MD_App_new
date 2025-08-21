@@ -26,9 +26,9 @@ const Stack = createStackNavigator();
 const open_instititute_web = () => {
   Linking.openURL("https://www.iitism.ac.in/");
 };
-const open_parent_portal = () => {
+const open_ark_portal = () => {
   Linking.openURL(
-    "https://parent.iitism.ac.in/index.php/parent_portal/portal0"
+    "https://ark.iitism.ac.in/"
   );
 };
 
@@ -118,8 +118,8 @@ const CustomDrawerContent = (props) => {
             source={require("./assets/ParentPortal.png")} // Replace with your image URL
             className="h-6 w-6  border-radius-50 ml-7 opacity-50"
           />
-          <TouchableOpacity onPress={open_parent_portal}>
-            <Text className="text-base ml-6 text-gray-400">Parent Portal</Text>
+          <TouchableOpacity onPress={open_ark_portal}>
+            <Text className="text-base ml-6 text-gray-400">ARK Portal</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -142,9 +142,9 @@ const CustomDrawerContent = (props) => {
             className="h-6 w-6  border-radius-50 ml-7 opacity-50"
           />
           <TouchableOpacity
-            onPress={() => props.navigation.navigate("ContactUs")}
+            onPress={() => props.navigation.navigate("Important Contacts")}
           >
-            <Text className="text-base ml-6 text-gray-400">Contact Us</Text>
+            <Text className="text-base ml-6 text-gray-400">Important Contacts</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -164,7 +164,7 @@ const App = () => {
         <Drawer.Screen name="MDPosts" component={MDPosts} />
         <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
         <Drawer.Screen name="Placementor" component={Placementor} />
-        <Drawer.Screen name="ContactUs" component={ContactUs} />
+        <Drawer.Screen name="Important Contacts" component={ContactUs} />
         <Drawer.Screen name="AboutUs" component={AboutUs} />
         <Drawer.Screen name="Details" component={Details} />
       </Drawer.Navigator>
