@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 import Modal from "react-native-modal";
 
 const PostDetailsModal = ({ isVisible, onClose, post }) => {
@@ -23,6 +23,16 @@ const PostDetailsModal = ({ isVisible, onClose, post }) => {
           <Text style={styles.date}>
             {new Date(post._createdAt).toLocaleString()}
           </Text>
+
+          {/* ✅ Show Image only if present */}
+          {post.images && post.images.length > 0 && (
+            <Image
+              source={{ uri: post.images[0].asset?.url }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          )}
+
           <Text style={styles.description}>{description}</Text>
 
           <Text style={styles.hashtagsTitle}>Hashtags:</Text>
@@ -72,6 +82,12 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
     color: "#666",
+    marginBottom: 15,
+  },
+  image: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
     marginBottom: 15,
   },
   description: {

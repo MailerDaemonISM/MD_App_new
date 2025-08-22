@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Image
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -43,6 +44,7 @@ const HomeScreen = () => {
         _id,
         title,
         body,
+        images[]{asset->{url}},
         _createdAt,
         hashtags[]->{
           _id,
@@ -176,8 +178,7 @@ const HomeScreen = () => {
       )}
 
       <FloatingButton />
-
-      {/* Overlay for post details */}
+{/*overlay modal for displaying post details */}
 <Modal
   visible={!!selectedPost}
   animationType="slide"
@@ -185,9 +186,8 @@ const HomeScreen = () => {
   onRequestClose={() => setSelectedPost(null)}
 >
   <View style={styles.modalOverlay}>
-    {/* Main Content */}
     <View style={styles.modalContent}>
-      {/* Close Button INSIDE modalContent */}
+      {/* Close Button */}
       <TouchableOpacity
         style={[
           styles.closeButton,
@@ -203,6 +203,30 @@ const HomeScreen = () => {
 
       <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
       <Text style={styles.modalCategory}>Category</Text>
+
+      {/*Show images if present */}
+      {selectedPost?.images && selectedPost.images.length > 0 && (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={{ marginVertical: 10 }}
+  >
+    {selectedPost.images.map((img, idx) => (
+      <Image
+        key={idx}
+        source={{ uri: img.asset.url }}
+        style={{
+          width: 250,
+          aspectRatio: 1,
+          borderRadius: 10,
+          marginRight: 10,
+        }}
+        resizeMode="contain"
+      />
+    ))}
+  </ScrollView>
+)}
+
       <Text style={styles.modalDescription}>
         {selectedPost?.body?.[0]?.children
           ?.map((child) => child.text)
@@ -219,8 +243,6 @@ const HomeScreen = () => {
     </View>
   </View>
 </Modal>
-
-
 
     </View>
   );

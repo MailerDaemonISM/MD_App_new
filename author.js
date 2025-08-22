@@ -26,19 +26,17 @@ export default defineType({
       to: {type: 'author'},
     }),
     defineField({
-      name: 'mainImage',
-      title: 'Main image',
-      type: 'image',
-      options: {
-        hotspot: true,
-      },
+      name: 'images',
+      title: 'Images',
+      type: 'array',
+      of: [{ type: 'image', options: { hotspot: true } }],
     }),
      defineField({
-  name: 'hashtags',
-  title: 'Hashtags',
-  type: 'array',
-  of: [{ type: 'reference', to: { type: 'hashtags' } }],
-}),
+        name: 'hashtags',
+        title: 'Hashtags',
+        type: 'array',
+        of: [{ type: 'reference', to: { type: 'hashtags' } }],
+      }),
 
     defineField({
       name: 'categories',
