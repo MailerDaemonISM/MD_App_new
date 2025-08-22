@@ -30,9 +30,6 @@ const fetchPlacementData = async (year) => {
   } else if (year == "2021") {
     url =
       "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
-  } else if (year == "2020") {
-    url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   }
 
   try {
@@ -212,7 +209,7 @@ const PlacementList = () => {
           <Picker.Item label="2023" value="2023" />
           <Picker.Item label="2022" value="2022" />
           <Picker.Item label="2021" value="2021" />
-          <Picker.Item label="2020" value="2020" />
+          {/* <Picker.Item label="2020" value="2020" /> */}
         </Picker>
 
         <Picker
