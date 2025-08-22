@@ -11,6 +11,7 @@ import {
 import { Card, Title, Paragraph, List } from "react-native-paper";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { styles } from "./DetailScreen.style";
 
 const getImageUrl = (image) => {
   if (!image || !image.asset || !image.asset._ref) return null;
@@ -171,46 +172,68 @@ const parsePortableText = (blocks) => {
 
 // ----------------- Section Components -----------------
 // Interview Rounds Section
-const InterviewRoundsSection = ({ data }) => (
-  <>
-    <Text style={styles.sectionHeading}>Interview Rounds</Text>
-    <List.Section>
-      {data ? (
-        Object.entries(data).map(([key, value], index) => (
-          <List.Accordion key={key} title={`Round ${index + 1}`} titleStyle={styles.accordionTitle}>
-            <Text style={styles.accordionText}>{value}</Text>
-          </List.Accordion>
-        ))
-      ) : (
-        <Paragraph style={styles.detail}>No interview round details available.</Paragraph>
-      )}
-    </List.Section>
-  </>
-);
+const InterviewRoundsSection = ({ data }) => {
+  if (!data || Object.keys(data).length === 0) return null;
 
-// Selection Process Section
-const SelectionProcessSection = ({ data }) => {
-  if (!data) return null;
-  const keyMap = {
-    step1: "Round 1",
-    step2: "Group Discussion Round",
-    step3: "Interview Round",
-  };
-  const sortedKeys = Object.keys(data).sort();
+  const rounds = Object.entries(data).filter(
+    ([, value]) => value && value.trim() !== ""
+  );
+
+  if (rounds.length === 0) return null;
 
   return (
     <>
-      <Text style={styles.sectionHeading}>Selection Process</Text>
+      <Text style={styles.sectionHeading}>Interview Rounds</Text>
       <List.Section>
-        {sortedKeys.map((key) => (
-          <List.Accordion key={key} title={keyMap[key] || key} titleStyle={styles.accordionTitle}>
-            <Text style={styles.accordionText}>{data[key]}</Text>
+        {rounds.map(([key, value], index) => (
+          <List.Accordion
+            key={key}
+            title={`Round ${index + 1}`}
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
         ))}
       </List.Section>
     </>
   );
 };
+
+
+// Selection Process Section
+const SelectionProcessSection = ({ data }) => {
+  if (!data || Object.keys(data).length === 0) return null;
+
+  const keyMap = {
+    step1: "Round 1",
+    step2: "Group Discussion Round",
+    step3: "Interview Round",
+  };
+
+  const steps = Object.entries(data).filter(
+    ([, value]) => value && value.trim() !== ""
+  );
+
+  if (steps.length === 0) return null;
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Selection Process</Text>
+      <List.Section>
+        {steps.map(([key, value]) => (
+          <List.Accordion
+            key={key}
+            title={keyMap[key] || key}
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{value}</Text>
+          </List.Accordion>
+        ))}
+      </List.Section>
+    </>
+  );
+};
+
 
 // Resources Section
 const ResourcesSection = ({ data }) => {
@@ -229,22 +252,33 @@ const ResourcesSection = ({ data }) => {
 };
 
 // Reusable Section Component
-const Section = ({ title, data }) => (
-  <>
-    <Text style={styles.sectionHeading}>{title}</Text>
-    <List.Section>
-      {data ? (
-        Object.entries(data).map(([key, value]) => (
-          <List.Accordion key={key} title={key} titleStyle={styles.accordionTitle}>
+const Section = ({ title, data }) => {
+  if (!data) return null;
+
+  const items = Object.entries(data).filter(
+    ([, value]) => value && value.trim() !== ""
+  );
+
+  if (items.length === 0) return null;
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>{title}</Text>
+      <List.Section>
+        {items.map(([key, value]) => (
+          <List.Accordion
+            key={key}
+            title={key}
+            titleStyle={styles.accordionTitle}
+          >
             <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
-        ))
-      ) : (
-        <Paragraph style={styles.detail}>No {title.toLowerCase()} details available.</Paragraph>
-      )}
-    </List.Section>
-  </>
-);
+        ))}
+      </List.Section>
+    </>
+  );
+};
+
 
 // Influence Of Section
 const InfluenceOfSection = ({ data }) => {
@@ -267,86 +301,5 @@ const InfluenceOfSection = ({ data }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  loadingText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 10,
-    color: "#000000",
-  },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  noDataText: {
-    fontSize: 18,
-    color: "gray",
-    marginTop: 10,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#222",
-    marginBottom: 10,
-  },
-  detail: {
-    fontSize: 18,
-    color: "#555",
-    marginVertical: 5,
-  },
-  card: {
-    marginVertical: 10,
-    padding: 15,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-  },
-  sectionHeading: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "rgba(238, 109, 152, 1)",
-    marginVertical: 15,
-    borderBottomWidth: 2,
-    borderBottomColor: "rgba(238, 109, 152, 1)",
-  },
-  accordionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    padding: 10,
-    backgroundColor: "#F5F5F5", // Light background
-    borderRadius: 8,
-  },
-  accordionText: {
-    fontSize: 14,
-    color: "#333",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontStyle: "italic",
-  },
-  companyLogo: {
-    width: 120,
-    height: 120,
-    resizeMode: "contain",
-    alignSelf: "center",
-    marginBottom: -9,
-  },
-});
 
 export default Details;
