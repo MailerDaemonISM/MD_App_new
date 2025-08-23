@@ -5,10 +5,9 @@ import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from "reac
 const ContactUs = () => {
   return (
     <ScrollView className="flex-1 bg-white px-5 py-8">
-      {/* Header */}
+ 
       <Text className="text-xl font-bold mb-4">Important Contacts</Text>
 
-      {/* Search Box */}
       <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-4">
         <Image
           source={{
@@ -22,14 +21,7 @@ const ContactUs = () => {
           className="ml-2 flex-1 text-gray-700"
         />
       </View>
-
-      {/* Description */}
-      <Text className="text-gray-500 mb-6">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-        tempor incididunt ut labore et
-      </Text>
-
-      {/* Contact Cards */}
+     
       <TouchableOpacity className="flex-row items-center bg-gray-100 rounded-2xl px-5 py-4 mb-4">
         <Image
           source={{

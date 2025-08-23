@@ -278,8 +278,6 @@ const Section = ({ title, data }) => {
     </>
   );
 };
-
-
 // Influence Of Section
 const InfluenceOfSection = ({ data }) => {
   if (!data) return null;
