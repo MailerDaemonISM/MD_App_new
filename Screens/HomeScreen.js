@@ -64,12 +64,11 @@ const HomeScreen = () => {
       <View style={styles.cardContainer}>
         <View style={styles.cardTextContainer}>
           <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardCategory}>Category</Text>
           <Text numberOfLines={3} ellipsizeMode="tail" style={styles.cardDescription}>
             {description || "No content available"}
           </Text>
           <View style={styles.cardFooter}>
-            <Text style={styles.cardLabel}>Campus Daemon</Text>
+            <Text style={styles.cardLabel}>{console.log(item) && item.hashtag}</Text>
             <Text style={styles.cardTime}>
               {new Date(item._createdAt).toLocaleString()}
             </Text>
