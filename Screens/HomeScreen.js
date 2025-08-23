@@ -9,13 +9,13 @@ import {
   TextInput,
   Modal,
   ScrollView,
-  Image
+  Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
-import styles from "./HomeScreen.style"; 
+import styles from "./HomeScreen.style";
 
 const colorCycle = ["#FFC5C5", "#FFD59D", "#FECACA", "#CDFAFF"];
 
@@ -26,7 +26,8 @@ const HomeScreen = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPost, setSelectedPost] = useState(null); // For overlay
+  const [selectedPost, setSelectedPost] = useState(null); // overlay
+  const [selectedHashtag, setSelectedHashtag] = useState("All"); // filter
   const postsPerPage = 5;
 
   useEffect(() => {
@@ -128,8 +129,22 @@ const HomeScreen = () => {
     );
   };
 
-  const filteredPosts = posts.filter((post) =>
-    post.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // 🔹 Filtering logic
+  const filteredPosts = posts.filter((post) => {
+    const matchesSearch = post.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    const matchesHashtag =
+      selectedHashtag === "All" ||
+      post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
+
+    return matchesSearch && matchesHashtag;
+  });
+
+  // 🔹 Extract unique hashtags
+  const allHashtags = Array.from(
+    new Set(posts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
 
   return (
@@ -177,76 +192,80 @@ const HomeScreen = () => {
         />
       )}
 
-      <FloatingButton />
-{/*overlay modal for displaying post details */}
-<Modal
-  visible={!!selectedPost}
-  animationType="slide"
-  transparent
-  onRequestClose={() => setSelectedPost(null)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      {/* Close Button */}
-      <TouchableOpacity
-        style={[
-          styles.closeButton,
-          {
-            backgroundColor:
-              colorCycle[selectedPost?.index % colorCycle.length],
-          },
-        ]}
-        onPress={() => setSelectedPost(null)}
-      >
-        <Icon name="close" size={24} color="#333" />
-      </TouchableOpacity>
-
-      <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-      <Text style={styles.modalCategory}>Category</Text>
-
-      {/*Show images if present */}
-      {selectedPost?.images && selectedPost.images.length > 0 && (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={{ marginVertical: 10 }}
-  >
-    {selectedPost.images.map((img, idx) => (
-      <Image
-        key={idx}
-        source={{ uri: img.asset.url }}
-        style={{
-          width: 250,
-          aspectRatio: 1,
-          borderRadius: 10,
-          marginRight: 10,
-        }}
-        resizeMode="contain"
+      {/* 🔹 Floating filter button */}
+      <FloatingButton
+        hashtags={allHashtags}
+        selectedHashtag={selectedHashtag}
+        onSelectHashtag={setSelectedHashtag}
       />
-    ))}
-  </ScrollView>
-)}
 
-      <Text style={styles.modalDescription}>
-        {selectedPost?.body?.[0]?.children
-          ?.map((child) => child.text)
-          .join(" ") || "No content available"}
-      </Text>
-      <Text style={styles.modalHashtags}>
-        {selectedPost?.hashtags?.length
-          ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
-          : "No hashtags"}
-      </Text>
-      <Text style={styles.modalTime}>
-        {new Date(selectedPost?._createdAt).toLocaleString()}
-      </Text>
-    </View>
-  </View>
-</Modal>
+      {/* Overlay modal for displaying post details */}
+      <Modal
+        visible={!!selectedPost}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedPost(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={[
+                styles.closeButton,
+                {
+                  backgroundColor:
+                    colorCycle[selectedPost?.index % colorCycle.length],
+                },
+              ]}
+              onPress={() => setSelectedPost(null)}
+            >
+              <Icon name="close" size={24} color="#333" />
+            </TouchableOpacity>
 
+            <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+            <Text style={styles.modalCategory}>Category</Text>
+
+            {/*Show images if present */}
+            {selectedPost?.images && selectedPost.images.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginVertical: 10 }}
+              >
+                {selectedPost.images.map((img, idx) => (
+                  <Image
+                    key={idx}
+                    source={{ uri: img.asset.url }}
+                    style={{
+                      width: 250,
+                      aspectRatio: 1,
+                      borderRadius: 10,
+                      marginRight: 10,
+                    }}
+                    resizeMode="contain"
+                  />
+                ))}
+              </ScrollView>
+            )}
+
+            <Text style={styles.modalDescription}>
+              {selectedPost?.body?.[0]?.children
+                ?.map((child) => child.text)
+                .join(" ") || "No content available"}
+            </Text>
+            <Text style={styles.modalHashtags}>
+              {selectedPost?.hashtags?.length
+                ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
+                : "No hashtags"}
+            </Text>
+            <Text style={styles.modalTime}>
+              {new Date(selectedPost?._createdAt).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 export default HomeScreen;
-
