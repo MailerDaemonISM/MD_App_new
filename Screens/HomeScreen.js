@@ -79,7 +79,7 @@ const HomeScreen = () => {
         <View style={styles.cardContainer}>
           <View style={styles.cardTextContainer}>
             <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardCategory}>Category</Text>
+            {/* <Text style={styles.cardCategory}>Category</Text> */}
             <Text
               numberOfLines={3}
               ellipsizeMode="tail"
@@ -129,7 +129,7 @@ const HomeScreen = () => {
     );
   };
 
-  // 🔹 Filtering logic
+  //filtering posts according to selected hashtag
   const filteredPosts = posts.filter((post) => {
     const matchesSearch = post.title
       .toLowerCase()
@@ -142,7 +142,7 @@ const HomeScreen = () => {
     return matchesSearch && matchesHashtag;
   });
 
-  // 🔹 Extract unique hashtags
+  //unique hashtags
   const allHashtags = Array.from(
     new Set(posts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
@@ -192,7 +192,7 @@ const HomeScreen = () => {
         />
       )}
 
-      {/* 🔹 Floating filter button */}
+      {/*floating filter button */}
       <FloatingButton
         hashtags={allHashtags}
         selectedHashtag={selectedHashtag}
@@ -223,7 +223,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
 
             <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-            <Text style={styles.modalCategory}>Category</Text>
+            {/* <Text style={styles.modalCategory}>Category</Text> */}
 
             {/*Show images if present */}
             {selectedPost?.images && selectedPost.images.length > 0 && (
