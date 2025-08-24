@@ -131,9 +131,9 @@ const HomeScreen = () => {
 
   //filtering posts according to selected hashtag
   const filteredPosts = posts.filter((post) => {
-    const matchesSearch = post.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+   const matchesSearch = (post.title || "")
+  .toLowerCase()
+  .includes(searchQuery.toLowerCase());
 
     const matchesHashtag =
       selectedHashtag === "All" ||

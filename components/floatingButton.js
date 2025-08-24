@@ -13,7 +13,7 @@ const FloatingButton = ({ hashtags, selectedHashtag, onSelectHashtag }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const handlePress = (item) => {
-    onSelectHashtag(item); // send selection to parent (HomeScreen)
+    onSelectHashtag(item); //send selection to the homescreen
     setModalVisible(false);
   };
 
