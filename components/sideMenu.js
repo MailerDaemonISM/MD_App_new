@@ -1,4 +1,3 @@
-import React from 'react';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Text, Image, View, Linking } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';

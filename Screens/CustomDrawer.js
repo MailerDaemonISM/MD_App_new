@@ -139,7 +139,7 @@ const CustomDrawerContent = (props) => {
                                 className="h-6 w-6  border-radius-50 ml-7 opacity-50"
                             />
                             <TouchableOpacity
-                                onPress={() => props.navigation.navigate("Important Contacts")}
+                                onPress={() => props.navigation.navigate("ContactUs")}
                             >
                                 <Text className="text-base ml-6 text-gray-400">Important Contacts</Text>
                             </TouchableOpacity>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, StatusBar } from 'react-native';
 
 const AboutUs = () => {

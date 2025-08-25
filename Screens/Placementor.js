@@ -209,6 +209,7 @@ const PlacementList = () => {
           <Picker.Item label="2023" value="2023" />
           <Picker.Item label="2022" value="2022" />
           <Picker.Item label="2021" value="2021" />
+          {/* <Picker.Item label="2020" value="2020" /> */}
         </Picker>
 
         <Picker
@@ -239,7 +240,6 @@ const PlacementList = () => {
           data={filteredPlacements}
           keyExtractor={(item) => item.id}
           renderItem={renderCard}
-          key={item => item.id}
         />
       ) : (
         <View style={styles.noResultsContainer}>
