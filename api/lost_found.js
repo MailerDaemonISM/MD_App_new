@@ -1,10 +1,9 @@
-import { client } from '../sanity';
-import { Alert, Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import { client } from "../sanity";
+import { Alert, Platform } from "react-native";
 
 export const setLostFoundData = async (data, onSuccess) => {
   const { contact, body, location, type, name, uri, approved, title } = data;
-
+  
   try {
     let doc = {
       _type: "lost_found",
@@ -19,26 +18,45 @@ export const setLostFoundData = async (data, onSuccess) => {
 
     if (uri && uri !== "") {
       let imageAsset;
-
+      
       if (Platform.OS === "web") {
-        // Web: fetch file as blob
+        // --- Web: use fetch to get a Blob ---
         const response = await fetch(uri);
         const blob = await response.blob();
-
         imageAsset = await client.assets.upload("image", blob, {
           filename: "image.jpg",
         });
       } else {
-        // Native: read as base64
-        const base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.Base64,
+        // --- Native: create proper FormData ---
+        const filename = uri.split("/").pop() || "image.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const fileType = match ? `image/${match[1]}` : "image/jpeg";
+        
+        // Create FormData for native upload
+        const formData = new FormData();
+        formData.append('file', {
+          uri: uri,
+          type: fileType,
+          name: filename,
         });
-
-        imageAsset = await client.assets.upload(
-          "image",
-          Buffer.from(base64, "base64"),
-          { filename: "image.jpg" }
-        );
+        
+        // Alternative approach: Convert to blob for Sanity
+        try {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          imageAsset = await client.assets.upload("image", blob, {
+            filename: filename,
+          });
+        } catch (fetchError) {
+          console.log("Blob conversion failed, trying direct file upload...");
+          // Fallback to direct file object
+          const file = {
+            uri: uri,
+            type: fileType,
+            name: filename,
+          };
+          imageAsset = await client.assets.upload("image", file);
+        }
       }
 
       doc.image = {
@@ -51,17 +69,18 @@ export const setLostFoundData = async (data, onSuccess) => {
     }
 
     const result = await client.create(doc);
-
-    console.log("Document created:", result);
+    console.log("✅ Document created:", result);
+    
     Alert.alert(
       "Successfully Uploaded",
       "Wait for our team to review your request, this won't take long",
       [{ text: "Ok" }]
     );
-
+    
     if (onSuccess) onSuccess();
+    
   } catch (error) {
-    console.error("Error uploading document:", error);
-    Alert.alert("Upload Failed", error.message || "Something went wrong");
+    console.error("❌ Error uploading document:", error.message || error);
+    Alert.alert("Upload Failed", error.message || "Something went wrong. Please try again.");
   }
 };
