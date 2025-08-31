@@ -134,15 +134,16 @@ const styles = StyleSheet.create({
     color: "#888",
     marginBottom: 16,
   },
-  closeButton: {
+ closeButton: {
   position: "absolute",
-  top: 10,
-  right: 10,
+  top: 20,     // move slightly down from the very top
+  right: 20,   // move slightly away from the edge
   padding: 6,
   borderRadius: 20,
+  backgroundColor: "rgba(255,255,255,0.7)", // transparent white
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 10, 
+  zIndex: 20, // stays on top of everything
 },
   closeButtonText: {
     color: "#fff",

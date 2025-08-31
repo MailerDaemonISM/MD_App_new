@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
@@ -16,8 +15,13 @@ import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
 import styles from "./HomeScreen.style";
+import { hashtags as hashtagData } from "./hashtags";
 
-const colorCycle = ["#FFC5C5", "#FFD59D", "#FECACA", "#CDFAFF"];
+// color cycle replaced -> hashtags mapped to color on hashtags.js page
+const hashtagColorMap = hashtagData.reduce((map, tag) => {
+  map[tag.title] = tag.color;
+  return map;
+}, {});
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -26,8 +30,8 @@ const HomeScreen = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPost, setSelectedPost] = useState(null); // overlay
-  const [selectedHashtag, setSelectedHashtag] = useState("All"); // filter
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedHashtag, setSelectedHashtag] = useState("All");
   const postsPerPage = 5;
 
   useEffect(() => {
@@ -68,18 +72,28 @@ const HomeScreen = () => {
     }
   };
 
-  const renderItem = ({ item, index }) => {
-    const description =
-      item.body?.[0]?.children?.map((child) => child.text).join(" ") || "";
+  const renderItem = ({ item }) => {
+    // body content
+    const description = Array.isArray(item.body)
+      ? item.body
+          .map((block) =>
+            Array.isArray(block.children)
+              ? block.children.map((child) => child.text).join("")
+              : ""
+          )
+          .join("\n\n")
+      : typeof item.body === "string"
+      ? item.body
+      : "";
 
-    const sideBarColor = colorCycle[index % 4];
+    const firstTag = item.hashtags?.[0]?.hashtag;
+    const sideBarColor = hashtagColorMap[firstTag] || "#ddd"; // fallback gray
 
     return (
       <TouchableOpacity onPress={() => setSelectedPost(item)}>
         <View style={styles.cardContainer}>
           <View style={styles.cardTextContainer}>
             <Text style={styles.cardTitle}>{item.title}</Text>
-            {/* <Text style={styles.cardCategory}>Category</Text> */}
             <Text
               numberOfLines={3}
               ellipsizeMode="tail"
@@ -129,11 +143,11 @@ const HomeScreen = () => {
     );
   };
 
-  //filtering posts according to selected hashtag
+  // filter posts
   const filteredPosts = posts.filter((post) => {
-   const matchesSearch = (post.title || "")
-  .toLowerCase()
-  .includes(searchQuery.toLowerCase());
+    const matchesSearch = (post.title || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
 
     const matchesHashtag =
       selectedHashtag === "All" ||
@@ -142,7 +156,7 @@ const HomeScreen = () => {
     return matchesSearch && matchesHashtag;
   });
 
-  //unique hashtags
+  // unique hashtags
   const allHashtags = Array.from(
     new Set(posts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
@@ -192,14 +206,14 @@ const HomeScreen = () => {
         />
       )}
 
-      {/*floating filter button */}
+      {/* floating filter button */}
       <FloatingButton
         hashtags={allHashtags}
         selectedHashtag={selectedHashtag}
         onSelectHashtag={setSelectedHashtag}
       />
 
-      {/* Overlay modal for displaying post details */}
+      {/* Overlay modal */}
       <Modal
         visible={!!selectedPost}
         animationType="slide"
@@ -208,59 +222,60 @@ const HomeScreen = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Close Button */}
-            <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  backgroundColor:
-                    colorCycle[selectedPost?.index % colorCycle.length],
-                },
-              ]}
-              onPress={() => setSelectedPost(null)}
+            <ScrollView
+              contentContainerStyle={{ paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
             >
-              <Icon name="close" size={24} color="#333" />
-            </TouchableOpacity>
+              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
 
-            <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-            {/* <Text style={styles.modalCategory}>Category</Text> */}
+              {/* Images first */}
+              {selectedPost?.images && selectedPost.images.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginVertical: 10 }}
+                >
+                  {selectedPost.images.map((img, idx) => (
+                    <Image
+                      key={idx}
+                      source={{ uri: img.asset.url }}
+                      style={{
+                        width: 250,
+                        aspectRatio: 1,
+                        borderRadius: 10,
+                        marginRight: 10,
+                      }}
+                      resizeMode="contain"
+                    />
+                  ))}
+                </ScrollView>
+              )}
 
-            {/*Show images if present */}
-            {selectedPost?.images && selectedPost.images.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginVertical: 10 }}
-              >
-                {selectedPost.images.map((img, idx) => (
-                  <Image
-                    key={idx}
-                    source={{ uri: img.asset.url }}
-                    style={{
-                      width: 250,
-                      aspectRatio: 1,
-                      borderRadius: 10,
-                      marginRight: 10,
-                    }}
-                    resizeMode="contain"
-                  />
-                ))}
-              </ScrollView>
-            )}
+              {/* Then body text */}
+              <Text style={styles.modalDescription}>
+                {Array.isArray(selectedPost?.body)
+                  ? selectedPost.body
+                      .map((block) =>
+                        Array.isArray(block.children)
+                          ? block.children.map((child) => child.text).join("")
+                          : ""
+                      )
+                      .join("\n\n")
+                  : typeof selectedPost?.body === "string"
+                  ? selectedPost.body
+                  : "No content available"}
+              </Text>
 
-            <Text style={styles.modalDescription}>
-              {selectedPost?.body?.[0]?.children
-                ?.map((child) => child.text)
-                .join(" ") || "No content available"}
-            </Text>
-            <Text style={styles.modalHashtags}>
-              {selectedPost?.hashtags?.length
-                ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
-                : "No hashtags"}
-            </Text>
-            <Text style={styles.modalTime}>
-              {new Date(selectedPost?._createdAt).toLocaleString()}
-            </Text>
+              {/* Hashtags + time */}
+              <Text style={styles.modalHashtags}>
+                {selectedPost?.hashtags?.length
+                  ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
+                  : "No hashtags"}
+              </Text>
+              <Text style={styles.modalTime}>
+                {new Date(selectedPost?._createdAt).toLocaleString()}
+              </Text>
+            </ScrollView>
           </View>
         </View>
       </Modal>
