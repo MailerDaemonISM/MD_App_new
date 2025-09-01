@@ -1,20 +1,25 @@
-// screens/HomeScreen.js
-import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, Image, TouchableOpacity, Platform } from 'react-native';
+import { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  Image,
+  TouchableOpacity,
+  Platform,
+  Alert,
+  ScrollView,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from "@react-navigation/native";
 import { Dropdown } from "react-native-element-dropdown";
-import { FontAwesome } from "@expo/vector-icons";
-import { setLostFoundData } from '../api/lost_found';
-import { Alert } from "react-native"; 
+import { setLostFoundData } from "../api/lost_found";
 
 const data = [
   { label: "Lost", value: "lost" },
   { label: "Found", value: "found" },
-  // add more options here
 ];
 
-const MDLostnFound = ({ navigation }) => {
+const MDLostnFound = () => {
   const [lostorfound, setSelectedValue] = useState("");
   const [name, setname] = useState("");
   const [description, setDesc] = useState("");
@@ -24,18 +29,17 @@ const MDLostnFound = ({ navigation }) => {
   const [uri, seturi] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  // Request permissions on component mount
   useEffect(() => {
     requestPermissions();
   }, []);
 
   const requestPermissions = async () => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
+      if (status !== "granted") {
         Alert.alert(
-          'Permission Required',
-          'Sorry, we need camera roll permissions to upload images!'
+          "Permission Required",
+          "Sorry, we need camera roll permissions to upload images!"
         );
       }
     }
@@ -47,14 +51,10 @@ const MDLostnFound = ({ navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8, // Reduced quality for better upload performance
+        quality: 0.8,
       });
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        console.log("Selected image URI:", result.assets[0].uri);
         seturi(result.assets[0].uri);
-      } else {
-        Alert.alert("No Image Selected", "You did not select any image.");
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -63,10 +63,9 @@ const MDLostnFound = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    // Prevent multiple submissions
     if (isUploading) return;
 
-    // --- validation ---
+    // Validations
     if (!name.trim()) {
       Alert.alert("Validation Error", "Name is required");
       return;
@@ -86,7 +85,6 @@ const MDLostnFound = ({ navigation }) => {
 
     setIsUploading(true);
 
-    // --- if all good, prepare data ---
     const res = {
       type: lostorfound,
       body: description,
@@ -98,11 +96,8 @@ const MDLostnFound = ({ navigation }) => {
       title,
     };
 
-    console.log("Submitting:", res);
-
     try {
       await setLostFoundData(res, () => {
-        // Reset form fields on success
         setSelectedValue("");
         setname("");
         setDesc("");
@@ -111,6 +106,7 @@ const MDLostnFound = ({ navigation }) => {
         setTitle("Lost Object");
         seturi("");
       });
+      Alert.alert("Success", "Your post has been submitted successfully and will be reviewed by a member of our team!");
     } catch (error) {
       console.error("Submission error:", error);
     } finally {
@@ -118,121 +114,202 @@ const MDLostnFound = ({ navigation }) => {
     }
   };
 
-  const Navigation = useNavigation();
-
   return (
-    <View className="mt-8 flex flex-row w-full mr-0 ml-0 ">
-      <View className="h-1/1 w-3/4 flex flex-col align-center bg-white ml-5  border-white rounded-l-3xl  ">
-        <Text className="text-2xl text-black text-center mt-2">Enter Details</Text>
-        
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.headerText}>📌 Lost & Found</Text>
+        <Text style={styles.subText}>Fill out the details below</Text>
+
         <TextInput
-          placeholder="Enter Your Name"
-          className="mb-4 h-10 w-2/3 bg-white text-center ml-12 mt-5 border border-gray-400 bg-white-100 rounded-lg "
-          onChangeText={(e) => setname(e)}
+          placeholder="Your Name"
+          style={styles.input}
+          onChangeText={setname}
           value={name}
         />
 
         <TextInput
-          placeholder="Title For Your Post"
-          className="mb-4 h-10 w-2/3 bg-white text-center ml-12 mt-5 border border-gray-400 bg-white-100 rounded-lg "
-          onChangeText={(e) => setTitle(e)}
+          placeholder="Title (e.g. Lost Wallet)"
+          style={styles.input}
+          onChangeText={setTitle}
           value={title}
         />
 
         <TextInput
+          placeholder="Short Description"
+          style={[styles.input, styles.descriptionInput]}
+          value={description}
+          multiline
+          numberOfLines={3}
           onChangeText={(e) => {
-            const wordcounter = e.split(" ").length;
+            const wordcounter = e.trim().split(/\s+/).length;
             if (wordcounter <= 30) {
               setDesc(e);
             } else {
-              Alert.alert("Desc. Too Long", "Please Explain Briefly");
+              Alert.alert("Too Long", "Please keep description brief.");
             }
           }}
-          placeholder="Description"
-          className="mb-0 h-10 w-2/3 bg-white text-center ml-12 mt-2 border border-gray-400 bg-white-100 rounded-lg"
-          value={description}
         />
 
-        <View className="w-4/5 h-auto ml-8 mt-4">
-          <Dropdown
-            className="w-4/5 border border-gray-400  rounded-xl mt-4 mb-5 ml-5 mr-3 h-auto text-center"
-            data={data}
-            labelField="label"
-            valueField="value"
-            placeholder="Lost / Found"
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.placeholderStyle}
-            value={lostorfound}
-            onChange={(item) => setSelectedValue(item.value)}
-          />
-        </View>
+        <Dropdown
+          style={styles.dropdown}
+          data={data}
+          labelField="label"
+          valueField="value"
+          placeholder="Lost / Found"
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.placeholderStyle}
+          value={lostorfound}
+          onChange={(item) => setSelectedValue(item.value)}
+        />
 
         <TextInput
-          className="mb-4 h-10 w-2/3 bg-white text-center ml-12 mt-2 border border-gray-400 bg-white-100 rounded-lg"
-          placeholder="Location"
-          onChangeText={(e) => setlocation(e)}
+          placeholder="Location (e.g. Library, Hostel)"
+          style={styles.input}
+          onChangeText={setlocation}
           value={location}
         />
 
         <TextInput
-          className="mb-4 h-10 w-2/3 bg-white text-center ml-12 mt-2 border border-gray-400 bg-white-100 rounded-lg"
-          keyboardType="numeric"
           placeholder="Contact Number"
-          onChangeText={(e) => setcontact(e)}
+          style={styles.input}
+          keyboardType="numeric"
+          onChangeText={setcontact}
           value={contact}
         />
 
-        {uri && <Image source={{ uri: uri }} style={styles.image} className="mt-5" />}
+        {uri ? (
+          <Image source={{ uri }} style={styles.image} />
+        ) : (
+          <TouchableOpacity
+            onPress={pickImageAsync}
+            style={styles.uploadBox}
+            disabled={isUploading}
+          >
+            <Text style={styles.uploadBoxText}>📷 Upload an Image</Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity 
-          onPress={pickImageAsync} 
-          className="w-3/4 mb-6 ml-9 mt-6 border border-gray-400 border-1 rounded-xl bg-gray-400 h-10 flex justify-center"
+        {uri ? (
+          <TouchableOpacity
+            onPress={pickImageAsync}
+            style={styles.changeImageButton}
+          >
+            <Text style={styles.changeImageText}>Change Image</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.submitButton, isUploading && styles.disabledButton]}
+          onPress={handleSubmit}
           disabled={isUploading}
         >
-          <Text className="text-lg text-white align-cetner text-bold text-center font-bold">
-            {uri ? "Change Image" : "Upload An Image"}
+          <Text style={styles.submitButtonText}>
+            {isUploading ? "Submitting..." : "Submit Post"}
           </Text>
         </TouchableOpacity>
       </View>
-
-      <View className="bg-red-200 border rounded-r-lg border-red-200 mr-0 flex justify-center">
-        <View>
-          <FontAwesome
-            name="send"
-            size={24}
-            color={isUploading ? "gray" : "black"}
-            style={{ padding: 15 }}
-            onPress={handleSubmit}
-          />
-        </View>
-      </View>
-    </View>
+    </ScrollView>
   );
 };
 
 export default MDLostnFound;
 
 const styles = StyleSheet.create({
-  image: {
-    height: 200,
-    width: 250,
-    borderRadius: 25,
-    alignSelf: "center",
+  container: {
+    padding: 20,
+    backgroundColor: "#f9fafb",
   },
-  sendButtonContainer: {
-    backgroundColor: "#FFC5C5",
-    width: "15%",
-    height: "100%",
-    marginRight: "0%",
-    marginVertical: "0.5%",
-    borderRadius: 25,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    display: "flex",
-    justifyContent: "flex-end",
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  headerText: {
+    fontSize: 26,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 4,
+    color: "#1e293b",
+  },
+  subText: {
+    fontSize: 14,
+    color: "#64748b",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  input: {
+    marginBottom: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 10,
+    fontSize: 15,
+    backgroundColor: "#f8fafc",
+  },
+  descriptionInput: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  dropdown: {
+    borderColor: "#cbd5e1",
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 48,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+    backgroundColor: "#f8fafc",
   },
   placeholderStyle: {
-    color: "grey",
-    textAlign: "center",
+    color: "#64748b",
+    fontSize: 15,
+  },
+  uploadBox: {
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "#94a3b8",
+    borderRadius: 12,
+    height: 140,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 12,
+    backgroundColor: "#f1f5f9",
+  },
+  uploadBoxText: {
+    color: "#475569",
+    fontSize: 16,
+  },
+  image: {
+    height: 200,
+    borderRadius: 12,
+    marginVertical: 12,
+  },
+  changeImageButton: {
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  changeImageText: {
+    color: "#3b82f6",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  submitButton: {
+    backgroundColor: "#3b82f6",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  submitButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  disabledButton: {
+    backgroundColor: "#94a3b8",
   },
 });

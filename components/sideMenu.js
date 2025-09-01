@@ -15,7 +15,7 @@ const CustomDrawerContent = (props) => {
       {/* Header */}
       <View className="flex-row items-center mt-5 border-b-2 border-gray-300 py-4">
         <Image
-          source={require('../assets/md.png')}
+          source={require('../assets/md.jpg')}
           className="h-12 w-12 rounded-full ml-4"
         />
         <Text className="font-bold text-lg ml-4">Mailer Daemon</Text>

@@ -4,7 +4,7 @@ const AboutUs = () => {
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.header}>
-                <Image source={require('../assets/md.png')} style={styles.logo} />
+                <Image source={require('../assets/md.jpg')} style={styles.logo} />
                 <Text style={styles.title}>Mailer Daemon</Text>
             </View>
 
