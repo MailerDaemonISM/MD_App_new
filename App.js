@@ -16,6 +16,8 @@ import MDLostnFound from "./Screens/MDLost&Found";
 import MDPosts from "./Screens/MDPosts";
 import Placementor from "./Screens/Placementor";
 import Details from "./Screens/Details";
+import AcademicCalendar from "./Screens/AcadCal";
+import CampusMap from "./Screens/CampusMap";
 
 import SignInScreen from "./app/auth/sign-in";
 import SignUpScreen from "./app/auth/sign-up";
@@ -36,6 +38,8 @@ function DrawerNavigator() {
     <Drawer.Navigator drawerContent={CustomDrawerContent}>
       <Drawer.Screen name="HomeScreen" component={HomeScreen} />
       <Drawer.Screen name="MDHashtags" component={MDHashtags} />
+      <Drawer.Screen name="AcademicCalender" component={AcademicCalendar} />
+      <Drawer.Screen name="map" component={CampusMap} />
       <Drawer.Screen name="MDPosts" component={MDPosts} />
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
       <Drawer.Screen name="Placementor" component={Placementor} />

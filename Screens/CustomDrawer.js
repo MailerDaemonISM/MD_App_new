@@ -46,6 +46,16 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("MDHashtags")}
             />
             <NavItem
+              source={require("../assets/Calender.png")}
+              label="Academic Calendar"
+              onPress={() => props.navigation.navigate("AcademicCalender")}
+            />
+            <NavItem
+              source={require("../assets/Map.jpg")}
+              label="Campus Map"
+              onPress={() => props.navigation.navigate("map")}
+            />
+            <NavItem
               source={require("../assets/lostandfound.png")}
               label="Lost and Found"
               onPress={() => props.navigation.navigate("MDLostnFound")}
