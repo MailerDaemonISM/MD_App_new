@@ -10,6 +10,8 @@ import {
 import { useSignUp, useOAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import { useUser } from "@clerk/clerk-expo";
+
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -22,6 +24,20 @@ export default function SignUpScreen() {
   const [password, setPassword] = React.useState("");
   const [pendingVerification, setPendingVerification] = React.useState(false);
   const [code, setCode] = React.useState("");
+
+
+
+
+  const { isSignedIn, user } = useUser();
+
+useEffect(() => {
+  if (isSignedIn && user) {
+    console.log("✅ Signed up user data:");
+    console.log("ID:", user.id);
+    console.log("Email:", user.primaryEmailAddress?.emailAddress);
+    console.log("Username:", user.username);
+  }
+}, [isSignedIn, user]);
 
   // Email + password sign-up
   const onSignUpPress = async () => {

@@ -18,6 +18,7 @@ import Placementor from "./Screens/Placementor";
 import Details from "./Screens/Details";
 import AcademicCalendar from "./Screens/AcadCal";
 import CampusMap from "./Screens/CampusMap";
+import UserScreen from "./Screens/UserScreen";
 
 import SignInScreen from "./app/auth/sign-in";
 import SignUpScreen from "./app/auth/sign-up";
@@ -43,6 +44,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="MDPosts" component={MDPosts} />
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
       <Drawer.Screen name="Placementor" component={Placementor} />
+      <Drawer.Screen name="UserScreen" component={UserScreen} />
       <Drawer.Screen name="ContactUs" component={ContactUs} />
       <Drawer.Screen name="AboutUs" component={AboutUs} />
       <Drawer.Screen name="Details" component={Details} />

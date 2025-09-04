@@ -1,4 +1,4 @@
-import {client} from './Client'
+import {client} from './client'
 export async function getPosts() {
     const posts = await client.fetch('*[_type == "post"]')
     return posts

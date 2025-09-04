@@ -1,3 +1,4 @@
+// app/HomeScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -16,6 +17,8 @@ import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
 import styles from "./HomeScreen.style";
 import { hashtags as hashtagData } from "./hashtags";
+import { useUser } from "@clerk/clerk-expo";
+import { setUserIfNotExists } from "../api/user";
 
 // color cycle replaced -> hashtags mapped to color on hashtags.js page
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
@@ -33,6 +36,24 @@ const HomeScreen = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const postsPerPage = 5;
+
+  // Clerk user
+  const { isSignedIn, user } = useUser();
+
+  // 🔑 Sync Clerk user to Sanity on first login
+  useEffect(() => {
+    if (isSignedIn && user) {
+      const userData = {
+        clerkId: user.id,
+        email: user.primaryEmailAddress?.emailAddress,
+        name: user.fullName || "Anonymous",
+        username: user.username || user.fullName || "Anonymous",
+        image: user.imageUrl || "",
+      };
+
+      setUserIfNotExists(userData);
+    }
+  }, [isSignedIn, user]);
 
   useEffect(() => {
     fetchPosts();
@@ -66,7 +87,7 @@ const HomeScreen = () => {
         setHasMorePosts(false);
       }
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      console.error("❌ Error fetching posts:", error);
     } finally {
       setIsLoading(false);
     }
@@ -269,7 +290,9 @@ const HomeScreen = () => {
               {/* Hashtags + time */}
               <Text style={styles.modalHashtags}>
                 {selectedPost?.hashtags?.length
-                  ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
+                  ? selectedPost.hashtags
+                      .map((tag) => `${tag.hashtag}`)
+                      .join("\n")
                   : "No hashtags"}
               </Text>
               <Text style={styles.modalTime}>

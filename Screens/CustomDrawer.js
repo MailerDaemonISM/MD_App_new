@@ -65,6 +65,11 @@ const CustomDrawerContent = (props) => {
               label="Placementor"
               onPress={() => props.navigation.navigate("Placementor")}
             />
+            <NavItem
+              source={require("../assets/save-instagram.png")}
+              label="Saved Posts"
+              onPress={() => props.navigation.navigate("UserScreen")}
+            />
           </View>
 
           {/* Institute Links */}
