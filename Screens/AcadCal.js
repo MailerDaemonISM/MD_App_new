@@ -1,77 +1,87 @@
 // screens/AcademicCalendar.js
 import React, { useEffect, useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  //FlatList,
 } from "react-native";
-import { client } from "../sanity"; // your sanity client
+import { client } from "../sanity";
 
 export default function AcademicCalendar() {
-    const [events, setEvents] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [activeMonth, setActiveMonth] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeMonth, setActiveMonth] = useState(null);
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const data = await client.fetch(
-                    `*[_type == "academic_event"] | order(startDate asc){
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await client.fetch(
+          `*[_type == "academic_event"] | order(startDate asc){
             _id,
             title,
             startDate,
             endDate
           }`
-                );
-                setEvents(data);
+        );
+        setEvents(data);
 
-                if (data.length > 0) {
-                    const firstMonth = new Date(data[0].startDate).toLocaleString("default", {
-                        month: "short",
-                        year: "numeric",
-                    });
-                    setActiveMonth(firstMonth);
-                }
-            } catch (err) {
-                console.error("❌ Error fetching events:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchEvents();
-    }, []);
-
-    // Group events by month
-    const groupByMonth = () => {
-        const groups = {};
-        events.forEach((event) => {
-            if (!event.startDate) return;
-
-            const date = new Date(event.startDate);
-            const monthKey = date.toLocaleString("default", { month: "short", year: "numeric" });
-
-            if (!groups[monthKey]) groups[monthKey] = [];
-            groups[monthKey].push(event);
-        });
-        return groups;
+        if (data.length > 0) {
+          const firstMonth = formatMonthKey(new Date(data[0].startDate));
+          setActiveMonth(firstMonth);
+        }
+      } catch (err) {
+        console.error("❌ Error fetching events:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loader}>
-                <ActivityIndicator size="large" color="#4f46e5" />
-            </View>
-        );
-    }
+    fetchEvents();
+  }, []);
+  // Format date to "MMM'YY" (e.g., "Jan'24")
+  const formatMonthKey = (date) =>
+    `${date.toLocaleString("default", { month: "short" })}'${date
+      .getFullYear()
+      .toString()
+      .slice(-2)}`;
 
-    const groupedEvents = groupByMonth();
-    const months = Object.keys(groupedEvents);
+  const groupByMonth = () => {
+    const groups = {};
+    events.forEach((event) => {
+      if (!event.startDate) return;
+      const date = new Date(event.startDate);
+      const monthKey = formatMonthKey(date);
 
+      if (!groups[monthKey]) groups[monthKey] = [];
+      groups[monthKey].push(event);
+    });
+
+    const sorted = Object.keys(groups).sort((a, b) => {
+      const [ma, ya] = a.split("'");
+      const [mb, yb] = b.split("'");
+      const da = new Date(`${ma} 01 20${ya}`);
+      const db = new Date(`${mb} 01 20${yb}`);
+      return da - db;
+    });
+
+    return { groups, sorted };
+  };
+
+  if (loading) {
     return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#4f46e5" />
+      </View>
+    );
+  }
+
+  const { groups: groupedEvents, sorted: months } = groupByMonth();
+  const monthIndex = months.indexOf(activeMonth);
+ return (
         <View style={styles.container}>
             {/* Top Month Bar */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthBar}>
@@ -115,6 +125,7 @@ export default function AcademicCalendar() {
         </View>
     );
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

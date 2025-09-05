@@ -144,10 +144,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerImage: {
-    height: 44,
-    width: 44,
-    borderRadius: 22,
-  },
+  height: 50,
+  width: 50,
+  borderRadius: 25,  
+  resizeMode: "contain", 
+  opacity: 0.9,
+},
+
   headerTitle: {
     fontWeight: "bold",
     fontSize: 26,
@@ -171,13 +174,16 @@ const styles = StyleSheet.create({
     height: 28,
     marginBottom: 12,
     paddingLeft: 20,
+    paddingBottom: 3,
   },
   navIcon: {
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    opacity: 0.5,
-  },
+  height: 25,
+  width: 25,
+  marginRight: 4,
+  resizeMode: "contain", 
+  opacity: 0.8, // make it a bit clearer
+},
+
   navLabel: {
     fontSize: 16,
     marginLeft: 16,
