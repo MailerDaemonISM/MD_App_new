@@ -10,48 +10,52 @@ import {
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { client } from "../sanity";
-import styles from "./HomeScreen.style";//flatlist card style same as posts on homescreen
+import styles from "./HomeScreen.style"; // flatlist card style same as posts on homescreen
+import { useIsFocused } from "@react-navigation/native";
 
 const UserScreen = () => {
   const { user } = useUser();
   const [savedPosts, setSavedPosts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isFocused = useIsFocused();
 
-  useEffect(() => {
+  const fetchSavedPosts = async () => {
     if (!user) return;
-
-    const fetchSavedPosts = async () => {
-      setLoading(true);
-      try {
-        const query = `
-          *[_type == "user" && clerkId == $clerkId][0]{
-            saved_post[]->{
+    setLoading(true);
+    try {
+      const query = `
+        *[_type == "user" && clerkId == $clerkId][0]{
+          saved_post[]->{
+            _id,
+            title,
+            body,
+            images[]{asset->{url}},
+            _createdAt,
+            hashtags[]->{
               _id,
-              title,
-              body,
-              images[]{asset->{url}},
-              _createdAt,
-              hashtags[]->{
-                _id,
-                hashtag
-              }
+              hashtag
             }
           }
-        `;
-        const data = await client.fetch(query, { clerkId: user.id });
-        setSavedPosts(data?.saved_post || []);
-      } catch (err) {
-        console.error("❌ Error fetching saved posts:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        }
+      `;
+      const data = await client.fetch(query, { clerkId: user.id });
+      setSavedPosts(data?.saved_post || []);
+    } catch (err) {
+      console.error("Error fetching saved posts:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchSavedPosts();
-  }, [user]);
+  // 🔄 Fetch whenever screen becomes active
+  useEffect(() => {
+    if (isFocused) {
+      fetchSavedPosts();
+    }
+  }, [isFocused, user]);
 
   const renderItem = ({ item }) => {
-    // extract description text from body (like HomeScreen)
+    // extract description text from body
     const description = Array.isArray(item.body)
       ? item.body
           .map((block) =>
@@ -65,6 +69,7 @@ const UserScreen = () => {
       : "";
 
     return (
+      // home screen card design
       <View style={styles.cardContainer}>
         <View style={styles.cardTextContainer}>
           <Text style={styles.cardTitle}>{item.title}</Text>
@@ -90,7 +95,7 @@ const UserScreen = () => {
         {/* sidebar icons same as HomeScreen */}
         <View style={styles.sideBarContainer}>
           <TouchableOpacity style={styles.iconButton}>
-            <Icon name="bookmark" size={20} color="#333" /> 
+            <Icon name="bookmark" size={20} color="#333" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
