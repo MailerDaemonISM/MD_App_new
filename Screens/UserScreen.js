@@ -1,48 +1,126 @@
 import { useUser } from "@clerk/clerk-expo";
 import { useEffect, useState } from "react";
-import { View, Text, FlatList } from "react-native";
-import client from "../sanity"; // your sanity client
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
+import { client } from "../sanity";
+import styles from "./HomeScreen.style";//flatlist card style same as posts on homescreen
 
 const UserScreen = () => {
   const { user } = useUser();
   const [savedPosts, setSavedPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchSavedPosts = async () => {
-      const query = `
-        *[_type == "user" && _id == $userId][0]{
-          saved_post[]->{
-            _id, title, body
+      setLoading(true);
+      try {
+        const query = `
+          *[_type == "user" && clerkId == $clerkId][0]{
+            saved_post[]->{
+              _id,
+              title,
+              body,
+              images[]{asset->{url}},
+              _createdAt,
+              hashtags[]->{
+                _id,
+                hashtag
+              }
+            }
           }
-        }
-      `;
-      const data = await client.fetch(query, { userId: user.id });
-      setSavedPosts(data?.saved_post || []);
+        `;
+        const data = await client.fetch(query, { clerkId: user.id });
+        setSavedPosts(data?.saved_post || []);
+      } catch (err) {
+        console.error("❌ Error fetching saved posts:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchSavedPosts();
   }, [user]);
 
-  return (
-    <View style={{ flex: 1, padding: 20, backgroundColor: "#f9f9f9" }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>
-        📌 Saved Posts
-      </Text>
+  const renderItem = ({ item }) => {
+    // extract description text from body (like HomeScreen)
+    const description = Array.isArray(item.body)
+      ? item.body
+          .map((block) =>
+            Array.isArray(block.children)
+              ? block.children.map((child) => child.text).join("")
+              : ""
+          )
+          .join("\n\n")
+      : typeof item.body === "string"
+      ? item.body
+      : "";
 
-      {savedPosts.length === 0 ? (
-        <Text>No saved posts yet.</Text>
+    return (
+      <View style={styles.cardContainer}>
+        <View style={styles.cardTextContainer}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text
+            numberOfLines={3}
+            ellipsizeMode="tail"
+            style={styles.cardDescription}
+          >
+            {description || "No content available"}
+          </Text>
+          <View style={styles.cardFooter}>
+            <Text style={styles.cardLabel}>
+              {item.hashtags?.length
+                ? item.hashtags.map((t) => t.hashtag).join(", ")
+                : "No hashtags"}
+            </Text>
+            <Text style={styles.cardTime}>
+              {new Date(item._createdAt).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        {/* sidebar icons same as HomeScreen */}
+        <View style={styles.sideBarContainer}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Icon name="bookmark" size={20} color="#333" /> 
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Icon name="share-social-outline" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>📌 Saved Posts</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#333" />
+        </View>
+      ) : savedPosts.length === 0 ? (
+        <Text style={{ padding: 16 }}>No saved posts yet.</Text>
       ) : (
         <FlatList
           data={savedPosts}
           keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <View style={{ marginBottom: 15, padding: 10, backgroundColor: "#fff", borderRadius: 10 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600" }}>{item.title}</Text>
-              <Text>{item.body[0]?.children[0]?.text || "..."}</Text>
-            </View>
-          )}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 16 }}
         />
       )}
     </View>

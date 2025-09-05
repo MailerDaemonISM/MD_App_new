@@ -1,4 +1,4 @@
-// app/HomeScreen.js
+//HomeScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -18,7 +18,7 @@ import { client } from "../sanity";
 import styles from "./HomeScreen.style";
 import { hashtags as hashtagData } from "./hashtags";
 import { useUser } from "@clerk/clerk-expo";
-import { setUserIfNotExists } from "../api/user";
+import { setUserIfNotExists } from "../api/user";//sanity user create if not exists
 
 // color cycle replaced -> hashtags mapped to color on hashtags.js page
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
@@ -35,12 +35,14 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedHashtag, setSelectedHashtag] = useState("All");
+  const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
+
   const postsPerPage = 5;
 
-  // Clerk user
+  // Clerk auth user
   const { isSignedIn, user } = useUser();
 
-  // 🔑 Sync Clerk user to Sanity on first login
+  // link Clerk auth user to Sanity on first login
   useEffect(() => {
     if (isSignedIn && user) {
       const userData = {
@@ -92,6 +94,54 @@ const HomeScreen = () => {
       setIsLoading(false);
     }
   };
+
+  // fetch sanity user _id by clerkId
+  const fetchSanityUserId = async (clerkId) => {
+  const query = `*[_type == "user" && clerkId == $clerkId][0]{ _id }`;
+  const params = { clerkId };   // MUST be defined
+  return await client.fetch(query, params);
+};
+//handle bookmark using clerkId n posts_id
+const handleBookmark = async (postId, clerkId) => {
+  if (!clerkId) {
+    console.error("ClerkId is missing, cannot bookmark");
+    return;
+  }
+
+  try {
+    // Get sanity user document
+    const userDoc = await fetchSanityUserId(clerkId);
+    const sanityUserId = userDoc?._id;
+    if (!sanityUserId) {
+      console.error("No Sanity user found for ClerkId:", clerkId);
+      return;
+    }
+
+    //  Generate unique key
+    const uniqueKey = `${postId}-${Date.now()}`;
+
+    // Patch saved posts
+    await client
+      .patch(sanityUserId)
+      .setIfMissing({ saved_post: [] })
+      .append("saved_post", [
+        {
+          _key: uniqueKey,
+          _ref: postId,
+          _type: "reference",
+        },
+      ])
+      .commit();
+      // Update local state
+    setBookmarkedPosts((prev) => new Set([...prev, postId]));
+
+    console.log(" Post bookmarked:", postId);
+  } catch (err) {
+    console.error(" Error bookmarking post:", err);
+  }
+};
+
+
 
   const renderItem = ({ item }) => {
     // body content
@@ -149,8 +199,15 @@ const HomeScreen = () => {
               { backgroundColor: sideBarColor },
             ]}
           >
-            <TouchableOpacity style={styles.iconButton}>
-              <Icon name="bookmark-outline" size={20} color="#333" />
+           <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => handleBookmark(item._id, user?.id)}
+            >
+              <Icon
+                name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color="#333"
+              />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconButton}>
               <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
