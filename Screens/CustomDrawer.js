@@ -141,12 +141,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "#d1d5db", // gray-300
     height: 80,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   headerImage: {
   height: 50,
   width: 50,
-  borderRadius: 25,  
+  borderRadius:10,  
   resizeMode: "contain", 
   opacity: 0.9,
 },

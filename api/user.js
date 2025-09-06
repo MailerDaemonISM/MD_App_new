@@ -14,7 +14,7 @@ export const setUserIfNotExists = async (userData) => {
     if (!existingUser) {
       // User does not exist, create a new one
       const newUser = {
-        _id: clerkId, // optional: makes ClerkId the document _id for uniqueness
+        _id: clerkId, // makes ClerkId the document _id 
         _type: "user",
         clerkId,
         email,
@@ -27,7 +27,7 @@ export const setUserIfNotExists = async (userData) => {
       console.log("✅ User created in Sanity:", createdUser);
       return createdUser;
     } else {
-      console.log("ℹ️ User already exists in Sanity:", existingUser);
+      //console.log("ℹ️ User already exists in Sanity:", existingUser);
       return existingUser;
     }
   } catch (error) {

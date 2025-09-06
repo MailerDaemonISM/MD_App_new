@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Share,
   Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -19,6 +20,8 @@ import styles from "./HomeScreen.style";
 import { hashtags as hashtagData } from "./hashtags";
 import { useUser } from "@clerk/clerk-expo";
 import { setUserIfNotExists } from "../api/user";//sanity user create if not exists
+import NotificationButton from "../components/notification"; 
+
 
 // color cycle replaced -> hashtags mapped to color on hashtags.js page
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
@@ -36,6 +39,8 @@ const HomeScreen = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
+  const [hasUnseen, setHasUnseen] = useState(true); // assume unseen when app opens
+
 
   const postsPerPage = 5;
 
@@ -94,6 +99,31 @@ const HomeScreen = () => {
       setIsLoading(false);
     }
   };
+  // share handle
+  const handleShare = async (post) => {
+  try {
+    const message = `${post.title}\n\n${
+      Array.isArray(post.body)
+        ? post.body
+            .map((block) =>
+              Array.isArray(block.children)
+                ? block.children.map((child) => child.text).join("")
+                : ""
+            )
+            .join("\n\n")
+        : typeof post.body === "string"
+        ? post.body
+        : ""
+    }`;
+
+    await Share.share({
+      message,
+    });
+  } catch (error) {
+    console.error("Error sharing post:", error);
+  }
+};
+
 
   // fetch sanity user _id by clerkId
   const fetchSanityUserId = async (clerkId) => {
@@ -210,9 +240,9 @@ const handleBookmark = async (postId, clerkId) => {
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconButton}>
-              <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
+              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => handleShare(item)}>
               <Icon name="share-social-outline" size={20} color="#333" />
             </TouchableOpacity>
           </View>
@@ -240,18 +270,22 @@ const handleBookmark = async (postId, clerkId) => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-        <View style={styles.headerRightIcons}>
-          <TouchableOpacity
-            onPress={() => setSearchVisible(!searchVisible)}
-            style={styles.iconButton}
-          >
-            <Icon name="search-outline" size={24} color="#333" />
-          </TouchableOpacity>
-        </View>
+     <View style={styles.container}>
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
+      <View style={styles.headerRightIcons}>
+        {/* Search Button */}
+        <TouchableOpacity
+          onPress={() => setSearchVisible(!searchVisible)}
+          style={styles.iconButton}
+        >
+          <Icon name="search-outline" size={26} color="#333" />
+        </TouchableOpacity>
+
+        {/*Notification Button */}
+        <NotificationButton />
       </View>
+    </View>
 
       {searchVisible && (
         <TextInput

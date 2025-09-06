@@ -60,6 +60,7 @@ export default function AcademicCalendar() {
       groups[monthKey].push(event);
     });
 
+    // Sort months
     const sorted = Object.keys(groups).sort((a, b) => {
       const [ma, ya] = a.split("'");
       const [mb, yb] = b.split("'");
