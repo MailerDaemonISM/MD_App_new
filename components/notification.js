@@ -12,7 +12,7 @@ export default function NotificationButton() {
 >
   <Icon
     name={enabled ? "bell" : "bell-o"} // solid vs outlined
-    size={28}
+    size={26}
     color={enabled ? "gray" : "#333"}
   />
 </TouchableOpacity>

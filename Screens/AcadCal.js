@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 18,
         marginBottom: 14,
+        marginTop: 10,
 
         // shadow (iOS) + elevation (Android)
         shadowColor: "#000",

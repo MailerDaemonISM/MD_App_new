@@ -25,7 +25,7 @@ const MDLostnFound = () => {
   const [description, setDesc] = useState("");
   const [location, setlocation] = useState("");
   const [contact, setcontact] = useState("");
-  const [title, setTitle] = useState("Lost Object");
+  const [title, setTitle] = useState("");
   const [uri, seturi] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 

@@ -8,7 +8,7 @@ const AboutUs = () => {
                 <Text style={styles.title}>Mailer Daemon</Text>
             </View>
 
-            <Text style={styles.subtitle}>Welcome to Mailer Daemon</Text>
+            <Text style={styles.subtitle}>It's News till it's New</Text>
             <Text style={styles.tagline}>The Student Run Media Body of IIT (ISM) Dhanbad</Text>
 
             <Text style={styles.paragraph}>
@@ -63,6 +63,7 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 20,
         fontWeight: '600',
+        fontStyle: 'italic',
         color: '#333333',
         textAlign: 'center',
         marginBottom: 8,
