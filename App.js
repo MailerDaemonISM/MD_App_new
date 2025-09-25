@@ -14,6 +14,7 @@ import Details from "./Screens/Details";
 import AcademicCalendar from "./Screens/AcadCal";
 import CampusMap from "./Screens/CampusMap";
 import UserScreen from "./Screens/UserScreen";
+import Clubs from "./Screens/clubs";
 
 import SignInScreen from "./app/auth/sign-in";
 
@@ -40,6 +41,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="MDHashtags" component={MDHashtags} />
       <Drawer.Screen name="AcademicCalendar" component={AcademicCalendar} />
       <Drawer.Screen name="map" component={CampusMap} />
+      <Drawer.Screen name="clubs" component={Clubs} options={{ title: "Clubs Of IIT (ISM)" }} />
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
       <Drawer.Screen name="Placementor" component={Placementor} />
       <Drawer.Screen name="UserScreen" component={UserScreen} options={{ title: "Saved Posts" }} />
