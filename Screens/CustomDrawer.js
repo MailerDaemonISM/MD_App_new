@@ -48,7 +48,7 @@ const CustomDrawerContent = (props) => {
             <NavItem
               source={require("../assets/Calender.png")}
               label="Academic Calendar"
-              onPress={() => props.navigation.navigate("AcademicCalender")}
+              onPress={() => props.navigation.navigate("AcademicCalendar")}
             />
             <NavItem
               source={require("../assets/Map.jpg")}
