@@ -13,8 +13,13 @@ import {
   Share
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
+import { useUser } from "@clerk/clerk-expo";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking } from "react-native";
+
 let url = "";
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
@@ -58,6 +63,10 @@ const fetchPlacementData = async (year) => {
     }
   };
 
+const getUserSpecificKey = (userId) => {
+  return `placementBookmarks_${userId}`;
+};
+
 const PlacementList = () => {
   const [placements, setPlacements] = useState([]);
   const [filteredPlacements, setFilteredPlacements] = useState([]);
@@ -65,6 +74,8 @@ const PlacementList = () => {
   const [searchText, setSearchText] = useState("");
   const [selectedYear, setSelectedYear] = useState("2024");
   const [selectedBranch, setSelectedBranch] = useState("All");
+  const { user } = useUser();
+  const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -83,6 +94,57 @@ const PlacementList = () => {
     };
     getData();
   }, [selectedYear]); // Refetch data whenever the selected year changes
+
+  useEffect(() => {
+    loadBookmarks();
+  }, [user]);
+
+  const loadBookmarks = async () => {
+    if (!user) return;
+    try {
+      const userKey = getUserSpecificKey(user.id);
+      const savedBookmarks = await AsyncStorage.getItem(userKey);
+      if (savedBookmarks) {
+        setBookmarkedPosts(JSON.parse(savedBookmarks));
+      }
+    } catch (error) {
+      console.error('Error loading bookmarks:', error);
+    }
+  };
+
+  // Update the toggleBookmark function
+  const toggleBookmark = async (item) => {
+    if (!user) return;
+    try {
+      const userKey = getUserSpecificKey(user.id);
+      // Create a unique identifier for the placement item
+      const placementItem = {
+        ...item,
+        id: item._id || `placement_${item.company_name}_${item.year}` // Create unique ID if none exists
+      };
+      
+      const isBookmarked = bookmarkedPosts.some(post => 
+        post.id === placementItem.id || 
+        post._id === placementItem._id
+      );
+      
+      let updatedBookmarks;
+
+      if (isBookmarked) {
+        updatedBookmarks = bookmarkedPosts.filter(post => 
+          post.id !== placementItem.id && 
+          post._id !== placementItem._id
+        );
+      } else {
+        updatedBookmarks = [...bookmarkedPosts, placementItem];
+      }
+
+      await AsyncStorage.setItem(userKey, JSON.stringify(updatedBookmarks));
+      setBookmarkedPosts(updatedBookmarks);
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
+  };
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -164,18 +226,39 @@ const PlacementList = () => {
         <Text>Year : {item.year}</Text>
       </View>
       <View style={styles.iconsContainer}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="bookmark-border" size={20} color="#333" />
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => toggleBookmark(item)}
+        >
+          <Icon 
+            name={bookmarkedPosts.some(post => 
+              post.id === (item._id || `placement_${item.company_name}_${item.year}`) ||
+              post._id === item._id
+            ) ? "bookmark" : "bookmark-outline"} 
+            size={20} 
+            color="#333" 
+          />
         </TouchableOpacity>
+              <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() =>
+            Linking.openURL(
+              "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+            )
+          }
+      > 
+  <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+</TouchableOpacity>
+
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="share" size={20} color="#333" onPress={() => onShare(item)} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
+        {/* <TouchableOpacity style={styles.iconButton}>
           <Icon name="info" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="open-in-new" size={20} color="#333" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </TouchableOpacity>
   );
