@@ -10,7 +10,9 @@ import {
   Modal,
   ScrollView,
   Share,
+  Pressable,
   Image,
+  StyleSheet,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -28,77 +30,76 @@ const hashtagColorMap = hashtagData.reduce((map, tag) => {
 }, {});
 
 const HomeScreen = () => {
-  const [posts, setPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]); // all posts from Sanity
+  const [visiblePosts, setVisiblePosts] = useState([]); // currently visible posts
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
-
   const postsPerPage = 5;
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
 
+  // Fetch user bookmarks
   useEffect(() => {
-  if (isSignedIn && user) {
-    // Fetch Sanity user ID
-    const fetchUserBookmarks = async () => {
-      try {
-        const query = `*[_type=="user" && clerkId==$clerkId][0]{ saved_post[]->{ _id } }`;
-        const data = await client.fetch(query, { clerkId: user.id });
-
-        if (data?.saved_post) {
-          setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
+    if (isSignedIn && user) {
+      const fetchUserBookmarks = async () => {
+        try {
+          const query = `*[_type=="user" && clerkId==$clerkId][0]{
+            saved_post[]->{ _id }
+          }`;
+          const data = await client.fetch(query, { clerkId: user.id });
+          if (data?.saved_post) {
+            setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
+          }
+        } catch (err) {
+          console.error("Error fetching user bookmarks:", err);
         }
-      } catch (err) {
-        console.error("Error fetching user bookmarks:", err);
+      };
+      fetchUserBookmarks();
+    }
+  }, [isSignedIn, user]);
+
+  // Fetch ALL posts once
+  useEffect(() => {
+    const fetchAllPosts = async () => {
+      setIsLoading(true);
+      try {
+        const query = `*[_type == "post"] | order(_createdAt desc) {
+          _id,
+          title,
+          body,
+          images[]{asset->{url}},
+          _createdAt,
+          hashtags[]->{ _id, hashtag }
+        }`;
+        const result = await client.fetch(query);
+        setAllPosts(result);
+        setVisiblePosts(result.slice(0, postsPerPage));
+      } catch (error) {
+        console.error("❌ Error fetching posts:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchUserBookmarks();
-  }
-}, [isSignedIn, user]);
-
-
-  useEffect(() => {
-    fetchPosts();
+    fetchAllPosts();
   }, []);
 
-  const fetchPosts = async () => {
-    if (isLoading || !hasMorePosts) return;
+  // Load more posts locally
+  const loadMorePosts = () => {
+    const nextPage = currentPage + 1;
+    const start = (nextPage - 1) * postsPerPage;
+    const end = nextPage * postsPerPage;
+    const newPosts = allPosts.slice(start, end);
 
-    setIsLoading(true);
-    try {
-      const query = `*[_type == "post"] | order(_createdAt desc) [${
-        (currentPage - 1) * postsPerPage
-      }...${currentPage * postsPerPage}] {
-        _id,
-        title,
-        body,
-        images[]{asset->{url}},
-        _createdAt,
-        hashtags[]->{
-          _id,
-          hashtag
-        }
-      }`;
-
-      const result = await client.fetch(query);
-
-      if (result.length > 0) {
-        setPosts((prev) => [...prev, ...result]);
-        setCurrentPage((prev) => prev + 1);
-      } else {
-        setHasMorePosts(false);
-      }
-    } catch (error) {
-      console.error("❌ Error fetching posts:", error);
-    } finally {
-      setIsLoading(false);
+    if (newPosts.length > 0) {
+      setVisiblePosts((prev) => [...prev, ...newPosts]);
+      setCurrentPage(nextPage);
     }
   };
 
@@ -118,7 +119,6 @@ const HomeScreen = () => {
           ? post.body
           : ""
       }`;
-
       await Share.share({ message });
     } catch (error) {
       console.error("Error sharing post:", error);
@@ -132,51 +132,41 @@ const HomeScreen = () => {
   };
 
   // toggle bookmark button
-      const handleBookmark = async (postId, clerkId) => {
-        if (!clerkId) return;
+  const handleBookmark = async (postId, clerkId) => {
+    if (!clerkId) return;
+    try {
+      const userDoc = await fetchSanityUserId(clerkId);
+      const sanityUserId = userDoc?._id;
+      if (!sanityUserId) return;
 
-        try {
-          const userDoc = await fetchSanityUserId(clerkId);
-          const sanityUserId = userDoc?._id;
-          if (!sanityUserId) return;
+      const alreadySaved = bookmarkedPosts.has(postId);
 
-          const alreadySaved = bookmarkedPosts.has(postId);
+      // Optimistic UI update
+      setBookmarkedPosts((prev) => {
+        const updated = new Set(prev);
+        if (alreadySaved) updated.delete(postId);
+        else updated.add(postId);
+        return updated;
+      });
 
-          // Optimistic UI update
-          setBookmarkedPosts((prev) => {
-            const updated = new Set(prev);
-            if (alreadySaved) updated.delete(postId);
-            else updated.add(postId);
-            return updated;
-          });
-
-          if (alreadySaved) {
-            // Remove bookmark in Sanity
-            await client
-              .patch(sanityUserId)
-              .unset([`saved_post[_ref=="${postId}"]`])
-              .commit();
-          } else {
-            // Add bookmark in Sanity
-            await client
-              .patch(sanityUserId)
-              .setIfMissing({ saved_post: [] })
-              .append("saved_post", [{ _type: "reference", _ref: postId }])
-              .commit();
-          }
-        } catch (error) {
-          console.error("Error toggling bookmark:", error);
-
-          // Rollback in case of error
-          setBookmarkedPosts((prev) => {
-            const updated = new Set(prev);
-            if (alreadySaved) updated.add(postId);
-            else updated.delete(postId);
-            return updated;
-          });
-        }
-      };
-
+      if (alreadySaved) {
+        // Remove bookmark in Sanity
+        await client
+          .patch(sanityUserId)
+          .unset([`saved_post[_ref=="${postId}"]`])
+          .commit();
+      } else {
+        // Add bookmark in Sanity
+        await client
+          .patch(sanityUserId)
+          .setIfMissing({ saved_post: [] })
+          .append("saved_post", [{ _type: "reference", _ref: postId }])
+          .commit();
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+    }
+  };
 
   const renderItem = ({ item }) => {
     const description = Array.isArray(item.body)
@@ -214,20 +204,28 @@ const HomeScreen = () => {
             </View>
           </View>
 
-          <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
+          <View
+            style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}
+          >
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => handleBookmark(item._id, user?.id)}
             >
               <Icon
-                name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"}
+                name={
+                  bookmarkedPosts.has(item._id)
+                    ? "bookmark"
+                    : "bookmark-outline"
+                }
                 size={20}
                 color="#333"
               />
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.iconButton}>
               <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => handleShare(item)}
@@ -240,24 +238,29 @@ const HomeScreen = () => {
     );
   };
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesSearch = (post.title || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+ // Filter by search and hashtag
+const filteredPosts = allPosts.filter((post) => {
+  const matchesSearch = (post.title || "")
+    .toLowerCase()
+    .includes(searchQuery.toLowerCase());
+  const matchesHashtag =
+    selectedHashtag === "All" ||
+    post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
+  return matchesSearch && matchesHashtag;
+});
 
-    const matchesHashtag =
-      selectedHashtag === "All" ||
-      post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
+// if user is searching or filtering, show all filtered results (not paginated)
+const postsToRender =
+  searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
 
-    return matchesSearch && matchesHashtag;
-  });
 
   const allHashtags = Array.from(
-    new Set(posts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
+    new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
         <View style={styles.headerRightIcons}>
@@ -271,33 +274,45 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {searchVisible && (
-        <TextInput
-          placeholder="Search posts..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchBox}
-        />
-      )}
+  {searchVisible && (
+  <View style={styles.searchContainer}>
+    <TextInput
+      placeholder="Search posts..."
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+      style={styles.searchBox}
+    />
+    {searchQuery.length > 0 && (
+      <TouchableOpacity
+        onPress={() => setSearchQuery("")}
+        style={styles.clearButton}
+      >
+        <Icon name="close" size={22} color="#777" />
+      </TouchableOpacity>
+    )}
+  </View>
+)}
 
-      {isLoading && posts.length === 0 ? (
+      {isLoading && visiblePosts.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#333" />
         </View>
       ) : (
         <FlatList
-          data={filteredPosts}
+          data={postsToRender}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           onEndReachedThreshold={0.5}
-          onEndReached={fetchPosts}
+          onEndReached={
+            !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
+          }
           ListFooterComponent={
-            isLoading && (
+            !searchQuery && selectedHashtag === "All" && isLoading ? (
               <View style={styles.loadingFooter}>
                 <ActivityIndicator size="small" color="#333" />
                 <Text>Loading more posts...</Text>
               </View>
-            )
+            ) : null
           }
         />
       )}
@@ -316,17 +331,25 @@ const HomeScreen = () => {
         onRequestClose={() => setSelectedPost(null)}
       >
         <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedPost(null)}
+          />
           <View style={styles.modalContent}>
             <ScrollView
               contentContainerStyle={{ paddingBottom: 30 }}
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
             >
               <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-
               {selectedPost?.images?.length > 0 && (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
+                  pagingEnabled
+                  decelerationRate="fast"
+                  snapToInterval={260}
+                  nestedScrollEnabled
                   style={{ marginVertical: 10 }}
                 >
                   {selectedPost.images.map((img, idx) => (
@@ -344,7 +367,6 @@ const HomeScreen = () => {
                   ))}
                 </ScrollView>
               )}
-
               <Text style={styles.modalDescription}>
                 {Array.isArray(selectedPost?.body)
                   ? selectedPost.body
@@ -358,10 +380,11 @@ const HomeScreen = () => {
                   ? selectedPost.body
                   : "No content available"}
               </Text>
-
               <Text style={styles.modalHashtags}>
                 {selectedPost?.hashtags?.length
-                  ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
+                  ? selectedPost.hashtags
+                      .map((tag) => `#${tag.hashtag}`)
+                      .join("\n")
                   : "No hashtags"}
               </Text>
               <Text style={styles.modalTime}>

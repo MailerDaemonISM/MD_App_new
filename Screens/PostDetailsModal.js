@@ -24,7 +24,7 @@ const PostDetailsModal = ({ isVisible, onClose, post }) => {
             {new Date(post._createdAt).toLocaleString()}
           </Text>
 
-          {/* ✅ Show Image only if present */}
+          {/* Show Image only if present */}
           {post.images && post.images.length > 0 && (
             <Image
               source={{ uri: post.images[0].asset?.url }}

@@ -8,15 +8,19 @@ import {
   ActivityIndicator,
   Share,
   Image,
+  Pressable,
+  ScrollView,
   StyleSheet
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { client } from "../sanity";
 import styles from "./HomeScreen.style";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { hashtags as hashtagData } from "./hashtags";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import PostDetailsModal from "./PostDetailsModal";
+import Modal from "react-native-modal";
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -59,11 +63,14 @@ const getUserSpecificKey = (userId) => {
 };
 
 const UserScreen = () => {
+  const navigation = useNavigation();
   const { user } = useUser();
   const [savedPosts, setSavedPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userDocId, setUserDocId] = useState(null);
   const [placementBookmarks, setPlacementBookmarks] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const isFocused = useIsFocused();
 
   const fetchSavedPosts = async () => {
@@ -159,7 +166,19 @@ const UserScreen = () => {
     }
   };
 
-  // Regular saved post card (news/posts)
+  const handlePostPress = (post) => {
+    setSelectedPost(post);
+    setIsModalVisible(true);
+  };
+
+  const handlePlacementPress = (item) => {
+    navigation.navigate("Details", {
+      company_name: item.company_name || item.name,
+      year: item.year
+    });
+  };
+
+  // home screen posts render
   const renderItem = ({ item }) => {
     const description = Array.isArray(item.body)
       ? item.body
@@ -177,100 +196,94 @@ const UserScreen = () => {
     const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
 
     return (
-      <View style={styleshome.cardContainer}>
-        <View style={styles.cardTextContainer}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text numberOfLines={3} style={styles.cardDescription}>
-            {description || "No content available"}
-          </Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardLabel}>
-              {item.hashtags?.length
-                ? item.hashtags.map((t) => t.hashtag).join(", ")
-                : "No hashtags"}
+      <TouchableOpacity onPress={() => handlePostPress(item)}>
+        <View style={styleshome.cardContainer}>
+          <View style={styles.cardTextContainer}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text numberOfLines={3} style={styles.cardDescription}>
+              {description || "No content available"}
             </Text>
-            <Text style={styles.cardTime}>
-              {new Date(item._createdAt).toLocaleString()}
-            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardLabel}>
+                {item.hashtags?.length
+                  ? item.hashtags.map((t) => t.hashtag).join(", ")
+                  : "No hashtags"}
+              </Text>
+              <Text style={styles.cardTime}>
+                {new Date(item._createdAt).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => toggleSavePost(item._id)}
+            >
+              <Icon
+                name={
+                  savedPosts.some((p) => p._id === item._id)
+                    ? "bookmark"
+                    : "bookmark-outline"
+                }
+                size={20}
+                color="#333"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => handleShare(item)}
+            >
+              <Icon name="share-social-outline" size={20} color="#333" />
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View
-          style={{
-            flexDirection: "column",
-            width: 50,
-            justifyContent: "space-around",
-            alignItems: "center",
-            paddingVertical: 12,
-            backgroundColor: sideBarColor,
-          }}
-        >
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => toggleSavePost(item._id)}
-          >
-            <Icon
-              name={
-                savedPosts.some((p) => p._id === item._id)
-                  ? "bookmark"
-                  : "bookmark-outline"
-              }
-              size={20}
-              color="#333"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => handleShare(item)}
-          >
-            <Icon name="share-social-outline" size={20} color="#333" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
-  // Placement flatlists
+  // Update the renderPlacementCard function
   const renderPlacementCard = ({ item }) => {
     const isBookmarked = placementBookmarks.some((post) => post.id === item.id);
 
     return (
-      <View style={placementStyles.card}>
-        <Image
-          source={{ uri: getImageUrl(item.image) }}
-          style={placementStyles.companyLogo}
-        />
-        <View style={placementStyles.cardContent}>
-          <Text style={placementStyles.title}>{item.name}</Text>
-          <Text style={placementStyles.detail}>Role: {item.role}</Text>
-          <Text>On Campus</Text>
-          <Text>Year: {item.year}</Text>
+      <TouchableOpacity onPress={() => handlePlacementPress(item)}>
+        <View style={placementStyles.card}>
+          <Image
+            source={{ uri: getImageUrl(item.image) }}
+            style={placementStyles.companyLogo}
+          />
+          <View style={placementStyles.cardContent}>
+            <Text style={placementStyles.title}>{item.name}</Text>
+            <Text style={placementStyles.detail}>Role: {item.role}</Text>
+            <Text>On Campus</Text>
+            <Text>Year: {item.year}</Text>
+          </View>
+          <View style={placementStyles.iconsContainer}>
+            <TouchableOpacity
+              style={placementStyles.iconButton}
+              onPress={() => togglePlacementBookmark(item)}
+            >
+              <Icon
+                name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color="#333"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={placementStyles.iconButton}
+              onPress={() => handleShare(item)}
+            >
+              <Icon name="share-social-outline" size={20} color="#333" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={placementStyles.iconsContainer}>
-          <TouchableOpacity
-            style={placementStyles.iconButton}
-            onPress={() => togglePlacementBookmark(item)}
-          >
-            <Icon
-              name={isBookmarked ? "bookmark" : "bookmark-outline"}
-              size={20}
-              color="#333"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={placementStyles.iconButton}
-            onPress={() => handleShare(item)}
-          >
-            <Icon name="share-social-outline" size={20} color="#333" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -303,6 +316,83 @@ const UserScreen = () => {
           </Text>
         )}
       />
+
+      {/* Add PostDetails Modal */}
+      <Modal
+      visible={!!selectedPost}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setSelectedPost(null)}
+      >
+      <View style={styles.modalOverlay}>
+        {/* tap outside to close */}
+          <Pressable
+              style={StyleSheet.absoluteFill} 
+                 onPress={() => setSelectedPost(null)}
+                 />
+     
+                 {/* Modal content */}
+                 <View style={styles.modalContent}>
+                   <ScrollView
+                     contentContainerStyle={{ paddingBottom: 30 }}
+                     showsVerticalScrollIndicator={false}
+                     nestedScrollEnabled
+                   >
+                     <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+     
+                     {selectedPost?.images?.length > 0 && (
+                       <ScrollView
+                         horizontal
+                         showsHorizontalScrollIndicator={false}
+                         pagingEnabled
+                         decelerationRate="fast"
+                         snapToInterval={260}
+                         nestedScrollEnabled
+                         style={{ marginVertical: 10 }}
+                       >
+                         {selectedPost.images.map((img, idx) => (
+                           <Image
+                             key={idx}
+                             source={{ uri: img.asset.url }}
+                             style={{
+                               width: 250,
+                               aspectRatio: 1,
+                               borderRadius: 10,
+                               marginRight: 10,
+                             }}
+                             resizeMode="contain"
+                           />
+                         ))}
+                       </ScrollView>
+                     )}
+     
+                     <Text style={styles.modalDescription}>
+                       {Array.isArray(selectedPost?.body)
+                         ? selectedPost.body
+                             .map((block) =>
+                               Array.isArray(block.children)
+                                 ? block.children.map((child) => child.text).join("")
+                                 : ""
+                             )
+                             .join("\n\n")
+                         : typeof selectedPost?.body === "string"
+                         ? selectedPost.body
+                         : "No content available"}
+                     </Text>
+     
+                     <Text style={styles.modalHashtags}>
+                       {selectedPost?.hashtags?.length
+                         ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
+                         : "No hashtags"}
+                     </Text>
+     
+                 <Text style={styles.modalTime}>
+                       {new Date(selectedPost?._createdAt).toLocaleString()}
+                </Text>
+             </ScrollView>
+          </View>
+         </View>
+      </Modal>
     </View>
   );
 };
@@ -325,14 +415,15 @@ const styleshome = StyleSheet.create({
     elevation: 3,
     marginTop: 7,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
 });
 
 // Placement list styles
 const placementStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9f9f9",
-  },
   card: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",

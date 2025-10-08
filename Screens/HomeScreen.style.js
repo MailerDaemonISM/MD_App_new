@@ -135,21 +135,27 @@ const styles = StyleSheet.create({
     color: "#888",
     marginBottom: 16,
   },
- closeButton: {
-  position: "absolute",
-  top: 20,     // move slightly down from the very top
-  right: 20,   // move slightly away from the edge
-  padding: 6,
-  borderRadius: 20,
-  backgroundColor: "rgba(255,255,255,0.7)", // transparent white
+  searchContainer: {
+  flexDirection: "row",
   alignItems: "center",
-  justifyContent: "center",
-  zIndex: 20, // stays on top of everything
+  backgroundColor: "#f5f5f5",
+  borderRadius: 8,
+  marginHorizontal: 16,
+  marginBottom: 10,
+  paddingHorizontal: 10,
 },
-  closeButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
+
+searchBox: {
+  flex: 1,
+  height: 40,
+  fontSize: 16,
+  color: "#333",
+},
+
+clearButton: {
+  paddingLeft: 6,
+}
+
 });
 
 export default styles;
