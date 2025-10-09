@@ -19,6 +19,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useUser } from "@clerk/clerk-expo";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react/cjs/react.development";
 
 let url = "";
 // Function to fetch placement data based on the selected year
@@ -95,9 +97,13 @@ const PlacementList = () => {
     getData();
   }, [selectedYear]); // Refetch data whenever the selected year changes
 
-  useEffect(() => {
-    loadBookmarks();
-  }, [user]);
+  useFocusEffect(
+  useCallback(() => {
+    if (user) {
+      loadBookmarks();
+    }
+  }, [user])
+);
 
   const loadBookmarks = async () => {
     if (!user) return;
@@ -246,10 +252,9 @@ const PlacementList = () => {
               "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
             )
           }
-      > 
-  <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-</TouchableOpacity>
-
+              > 
+          <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="share" size={20} color="#333" onPress={() => onShare(item)} />
         </TouchableOpacity>

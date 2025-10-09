@@ -24,6 +24,8 @@ import { useUser } from "@clerk/clerk-expo";
 import { setUserIfNotExists } from "../api/user";
 import NotificationButton from "../components/notification";
 import { Linking } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react/cjs/react.development";
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -46,24 +48,29 @@ const HomeScreen = () => {
   const { isSignedIn, user } = useUser();
 
   // Fetch user bookmarks
-  useEffect(() => {
-    if (isSignedIn && user) {
-      const fetchUserBookmarks = async () => {
-        try {
-          const query = `*[_type=="user" && clerkId==$clerkId][0]{
-            saved_post[]->{ _id }
-          }`;
-          const data = await client.fetch(query, { clerkId: user.id });
-          if (data?.saved_post) {
-            setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
-          }
-        } catch (err) {
-          console.error("Error fetching user bookmarks:", err);
+ useFocusEffect(
+  useCallback(() => {
+    const fetchUserBookmarks = async () => {
+      if (!isSignedIn || !user) return;
+      try {
+        const query = `*[_type=="user" && clerkId==$clerkId][0]{
+          saved_post[]->{ _id }
+        }`;
+        const data = await client.fetch(query, { clerkId: user.id });
+        if (data?.saved_post) {
+          setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
+        } else {
+          setBookmarkedPosts(new Set());
         }
-      };
-      fetchUserBookmarks();
-    }
-  }, [isSignedIn, user]);
+      } catch (err) {
+        console.error("Error fetching user bookmarks:", err);
+      }
+    };
+
+    fetchUserBookmarks();
+  }, [isSignedIn, user])
+);
+
 
   // Fetch ALL posts once
   useEffect(() => {
@@ -387,7 +394,7 @@ const postsToRender =
               <Text style={styles.modalHashtags}>
                 {selectedPost?.hashtags?.length
                   ? selectedPost.hashtags
-                      .map((tag) => `#${tag.hashtag}`)
+                      .map((tag) => `${tag.hashtag}`)
                       .join("\n")
                   : "No hashtags"}
               </Text>
