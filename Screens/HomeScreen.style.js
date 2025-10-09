@@ -144,18 +144,15 @@ const styles = StyleSheet.create({
   marginBottom: 10,
   paddingHorizontal: 10,
 },
-
 searchBox: {
   flex: 1,
   height: 40,
   fontSize: 16,
   color: "#333",
 },
-
 clearButton: {
   paddingLeft: 6,
 }
-
 });
 
 export default styles;

@@ -23,6 +23,7 @@ import { hashtags as hashtagData } from "./hashtags";
 import { useUser } from "@clerk/clerk-expo";
 import { setUserIfNotExists } from "../api/user";
 import NotificationButton from "../components/notification";
+import { Linking } from "react-native";
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -30,8 +31,8 @@ const hashtagColorMap = hashtagData.reduce((map, tag) => {
 }, {});
 
 const HomeScreen = () => {
-  const [allPosts, setAllPosts] = useState([]); // all posts from Sanity
-  const [visiblePosts, setVisiblePosts] = useState([]); // currently visible posts
+  const [allPosts, setAllPosts] = useState([]); 
+  const [visiblePosts, setVisiblePosts] = useState([]); 
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -221,11 +222,16 @@ const HomeScreen = () => {
                 color="#333"
               />
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+                      style={styles.iconButton}
+                      onPress={() =>
+                        Linking.openURL(
+                          "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                        )
+                      }
+                  > 
               <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => handleShare(item)}
@@ -249,10 +255,9 @@ const filteredPosts = allPosts.filter((post) => {
   return matchesSearch && matchesHashtag;
 });
 
-// if user is searching or filtering, show all filtered results (not paginated)
+//all posts should be rendered
 const postsToRender =
   searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
-
 
   const allHashtags = Array.from(
     new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
@@ -292,7 +297,6 @@ const postsToRender =
     )}
   </View>
 )}
-
       {isLoading && visiblePosts.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#333" />

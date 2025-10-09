@@ -10,7 +10,7 @@ import {
   Image,
   Pressable,
   ScrollView,
-  StyleSheet
+  StyleSheet,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -19,8 +19,9 @@ import styles from "./HomeScreen.style";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { hashtags as hashtagData } from "./hashtags";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import PostDetailsModal from "./PostDetailsModal";
 import Modal from "react-native-modal";
+import { Linking } from "react-native";
+
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -150,11 +151,15 @@ const UserScreen = () => {
     if (!user) return;
     try {
       const userKey = getUserSpecificKey(user.id);
-      const isBookmarked = placementBookmarks.some((post) => post.id === item.id);
+      const isBookmarked = placementBookmarks.some(
+        (post) => post.id === item.id
+      );
       let updatedBookmarks;
 
       if (isBookmarked) {
-        updatedBookmarks = placementBookmarks.filter((post) => post.id !== item.id);
+        updatedBookmarks = placementBookmarks.filter(
+          (post) => post.id !== item.id
+        );
       } else {
         updatedBookmarks = [...placementBookmarks, item];
       }
@@ -172,13 +177,42 @@ const UserScreen = () => {
   };
 
   const handlePlacementPress = (item) => {
-    navigation.navigate("Details", {
-      company_name: item.company_name || item.name,
-      year: item.year
-    });
-  };
+    if (!item.year) {
+      console.warn("Cannot fetch details: item.year is missing");
+      return;
+    }
+    let url = "";
+    const yearStr = item.year.toString();
+    switch (yearStr) {
+      case "2024":
+        url =
+          "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+        break;
+    case "2023":
+      url = "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      break;
+    case "2022":
+      url = "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      break;
+    case "2021":
+      url =  "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      break;
+    default:
+      console.warn("No URL available for year:", yearStr);
+      return;
+  }
 
-  // home screen posts render
+  // Navigate to Details screen
+  navigation.navigate("Details", {
+    company_name: item.company_name || item.name,
+    year: item.year,
+    url,
+    from: "UserScreen",
+  });
+};
+
+
+  // Home posts render (unchanged)
   const renderItem = ({ item }) => {
     const description = Array.isArray(item.body)
       ? item.body
@@ -214,7 +248,9 @@ const UserScreen = () => {
               </Text>
             </View>
           </View>
-          <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
+          <View
+            style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}
+          >
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => toggleSavePost(item._id)}
@@ -229,9 +265,16 @@ const UserScreen = () => {
                 color="#333"
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-            </TouchableOpacity>
+           <TouchableOpacity
+                     style={styles.iconButton}
+                     onPress={() =>
+                       Linking.openURL(
+                         "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                       )
+                     }
+                         > 
+                     <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+                   </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => handleShare(item)}
@@ -244,7 +287,7 @@ const UserScreen = () => {
     );
   };
 
-  // Update the renderPlacementCard function
+  // Placement cards (only updated for Details navigation)
   const renderPlacementCard = ({ item }) => {
     const isBookmarked = placementBookmarks.some((post) => post.id === item.id);
 
@@ -272,9 +315,16 @@ const UserScreen = () => {
                 color="#333"
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-            </TouchableOpacity>
+           <TouchableOpacity
+                     style={styles.iconButton}
+                     onPress={() =>
+                       Linking.openURL(
+                         "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                       )
+                     }
+                      > 
+                     <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+                   </TouchableOpacity>
             <TouchableOpacity
               style={placementStyles.iconButton}
               onPress={() => handleShare(item)}
@@ -316,83 +366,6 @@ const UserScreen = () => {
           </Text>
         )}
       />
-
-      {/* Add PostDetails Modal */}
-      <Modal
-      visible={!!selectedPost}
-      animationType="slide"
-      transparent
-      onRequestClose={() => setSelectedPost(null)}
-      >
-      <View style={styles.modalOverlay}>
-        {/* tap outside to close */}
-          <Pressable
-              style={StyleSheet.absoluteFill} 
-                 onPress={() => setSelectedPost(null)}
-                 />
-     
-                 {/* Modal content */}
-                 <View style={styles.modalContent}>
-                   <ScrollView
-                     contentContainerStyle={{ paddingBottom: 30 }}
-                     showsVerticalScrollIndicator={false}
-                     nestedScrollEnabled
-                   >
-                     <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-     
-                     {selectedPost?.images?.length > 0 && (
-                       <ScrollView
-                         horizontal
-                         showsHorizontalScrollIndicator={false}
-                         pagingEnabled
-                         decelerationRate="fast"
-                         snapToInterval={260}
-                         nestedScrollEnabled
-                         style={{ marginVertical: 10 }}
-                       >
-                         {selectedPost.images.map((img, idx) => (
-                           <Image
-                             key={idx}
-                             source={{ uri: img.asset.url }}
-                             style={{
-                               width: 250,
-                               aspectRatio: 1,
-                               borderRadius: 10,
-                               marginRight: 10,
-                             }}
-                             resizeMode="contain"
-                           />
-                         ))}
-                       </ScrollView>
-                     )}
-     
-                     <Text style={styles.modalDescription}>
-                       {Array.isArray(selectedPost?.body)
-                         ? selectedPost.body
-                             .map((block) =>
-                               Array.isArray(block.children)
-                                 ? block.children.map((child) => child.text).join("")
-                                 : ""
-                             )
-                             .join("\n\n")
-                         : typeof selectedPost?.body === "string"
-                         ? selectedPost.body
-                         : "No content available"}
-                     </Text>
-     
-                     <Text style={styles.modalHashtags}>
-                       {selectedPost?.hashtags?.length
-                         ? selectedPost.hashtags.map((tag) => `${tag.hashtag}`).join("\n")
-                         : "No hashtags"}
-                     </Text>
-     
-                 <Text style={styles.modalTime}>
-                       {new Date(selectedPost?._createdAt).toLocaleString()}
-                </Text>
-             </ScrollView>
-          </View>
-         </View>
-      </Modal>
     </View>
   );
 };
@@ -414,11 +387,6 @@ const styleshome = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     marginTop: 7,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
   },
 });
 

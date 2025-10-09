@@ -43,8 +43,15 @@ const Details = ({ route }) => {
       setPlacementDetails(null);
       const data = await fetchPlacementDetails(url);
       const details = data
-        ? data.filter((item) => item.company_name === company_name)
-        : null;
+  ? data.filter((item) => {
+      const cmp = company_name?.toLowerCase();
+      return (
+        (item.company_name && item.company_name.toLowerCase() === cmp) ||
+        (item.name && item.name.toLowerCase() === cmp)
+      );
+    })
+  : null;
+
 
       if (details && details.length > 0) {
         setPlacementDetails(details[0]);
@@ -58,16 +65,23 @@ const Details = ({ route }) => {
   }, [url, company_name]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
+  React.useCallback(() => {
+    const onBackPress = () => {
+      if (route.params?.from === "UserScreen") {
+        navigation.navigate("UserScreen");
+      } else {
         navigation.navigate("Placementor");
-        return true;
-      };
-      BackHandler.addEventListener("hardwareBackPress", onBackPress);
-      return () =>
-        BackHandler.removeEventListener("hardwareBackPress", onBackPress);
-    }, [navigation])
-  );
+      }
+      return true; 
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+    return () => {
+      BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+    };
+  }, [navigation, route.params])
+);
 
   if (loading) {
     return (
