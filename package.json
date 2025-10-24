@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "start-server": "node src/server.js"
   },
   "expo": {
     "install": {
@@ -53,9 +54,12 @@
     "expo-notifications": "^0.31.4",
     "expo-router": "~4.0.9",
     "expo-secure-store": "~14.0.0",
+    "expo-server-sdk": "^4.0.0",
     "expo-updates": "~0.27.4",
     "expo-web-browser": "~14.0.1",
+    "express": "^5.1.0",
     "nativewind": "^4.1.23",
+    "node-fetch": "^3.3.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",

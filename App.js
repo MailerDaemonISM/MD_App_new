@@ -1,5 +1,17 @@
 // App.js
-import React from "react";
+import React, { useEffect } from 'react';
+import { Alert, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -62,6 +74,47 @@ function AuthStack() {
 }
 
 export default function App() {
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+
+    const subRecv = Notifications.addNotificationReceivedListener(n => {
+      console.log('Notification received on device:', n);
+    });
+    const subResp = Notifications.addNotificationResponseReceivedListener(r => {
+      console.log('Notification response:', r);
+    });
+
+    return () => {
+      subRecv.remove();
+      subResp.remove();
+    };
+  }, []);
+
+  async function registerForPushNotificationsAsync() {
+    if (!Constants.isDevice) {
+      Alert.alert('Push notifications require a physical device.');
+      return;
+    }
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+      Alert.alert('Permission not granted for notifications');
+      return;
+    }
+    const tokenObj = await Notifications.getExpoPushTokenAsync();
+    const token = tokenObj.data;
+    console.log('Expo Push Token:', token);
+    // optional: send token to your backend register-token or just copy it and use send-test
+    await fetch('http://<your-local-or-ngrok-host>:3000/api/register-token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expoPushToken: token, notificationsEnabled: true })
+    });
+  }
+
   return (
     <ClerkProvider
       publishableKey="pk_test_YWRlcXVhdGUtcGFuZ29saW4tNzYuY2xlcmsuYWNjb3VudHMuZGV2JA"

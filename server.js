@@ -1,23 +1,36 @@
 import { client } from './client';
 
-// Subscribe to post updates (client-side only)
+// Get all posts sorted by creation date
+export async function getPosts() {
+  return await client.fetch('*[_type == "post"] | order(_createdAt desc)');
+}
+
+// Subscribe to post updates and fetch new posts
 export const subscribeToPostUpdates = (callback) => {
-  return client.listen('*[_type == "post"]').subscribe(update => {
+  return client.listen('*[_type == "post"]').subscribe(async (update) => {
     if (update.result && update.result._type === "post") {
-      // Fetch all posts again to update the UI
-      getPosts().then(posts => {
-        callback(posts);
-      });
+      // Fetch all posts to update UI
+      const posts = await getPosts();
+      callback(posts);
+
+      // If it's a newly created post, trigger local notification
+      if (update.mutations.some((m) => m.create)) {
+        try {
+          // Call backend API that triggers push notifications
+          await fetch('https://YOUR_NGROK_URL/api/sanity-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ _id: update.result._id }),
+          });
+        } catch (err) {
+          console.error('Error calling notification backend:', err);
+        }
+      }
     }
   });
 };
 
-// Get all posts sorted by creation date
-export async function getPosts() {
-  const posts = await client.fetch('*[_type == "post"] | order(_createdAt desc)');
-  return posts;
-}
-
+// Fetch single post by ID
 export const getPostById = async (postId) => {
   try {
     const post = await client.fetch(`*[_type == 'post' && _id == $postId][0]`, { postId });
@@ -28,13 +41,14 @@ export const getPostById = async (postId) => {
   }
 };
 
+// Like/Unlike a post
 export const likePost = async (postId, userId) => {
   try {
-    const existingPost = await client.fetch(`*[_type == 'post' && _id == $postId][0]`, { postId });
+    const existingPost = await getPostById(postId);
     if (!existingPost) throw new Error('Post not found');
 
     const likesArray = existingPost.likes || [];
-    const userLikedIndex = likesArray.findIndex(like => like._ref === userId);
+    const userLikedIndex = likesArray.findIndex((like) => like._ref === userId);
 
     if (userLikedIndex === -1) likesArray.push({ _ref: userId });
     else likesArray.splice(userLikedIndex, 1);
@@ -47,6 +61,7 @@ export const likePost = async (postId, userId) => {
   }
 };
 
+// Create a comment
 export const createComment = async (name, email, postId, block) => {
   try {
     const comment = {
@@ -56,22 +71,21 @@ export const createComment = async (name, email, postId, block) => {
       post: { _type: 'reference', _ref: postId },
       block,
     };
-    const response = await client.create(comment);
-    return response;
+    return await client.create(comment);
   } catch (error) {
     console.error('Error creating comment:', error);
     throw error;
   }
 };
 
+// Create a new post
 export const createPost = async (postData) => {
   try {
-    const post = await client.create({
+    return await client.create({
       _type: 'post',
       _createdAt: new Date().toISOString(),
       ...postData,
     });
-    return post;
   } catch (error) {
     console.error('Error creating post:', error);
     throw error;
