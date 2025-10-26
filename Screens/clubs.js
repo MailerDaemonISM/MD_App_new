@@ -11,7 +11,7 @@ import {
   ScrollView,
   Linking,
 } from "react-native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import { client} from "../sanity";
 import { PortableText } from "@portabletext/react-native";
 
@@ -79,8 +79,16 @@ const Clubs = () => {
         transparent
         onRequestClose={() => setSelectedClub(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedClub(null)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <View style={styles.modalHeader}>
               {selectedClub?.logoUrl && (
@@ -90,12 +98,6 @@ const Clubs = () => {
                 />
               )}
               <Text style={styles.modalTitle}>{selectedClub?.name}</Text>
-              <TouchableOpacity
-                onPress={() => setSelectedClub(null)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={22} color="black" />
-              </TouchableOpacity>
             </View>
 
             {/* Info */}
@@ -131,8 +133,8 @@ const Clubs = () => {
                 </TouchableOpacity>
               )}
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

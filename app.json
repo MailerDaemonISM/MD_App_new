@@ -25,7 +25,8 @@
       },
       "package": "com.yourcompany.mdapp",
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -35,7 +36,16 @@
     "plugins": [
       "expo-image-picker",
       "expo-secure-store",
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/md.jpg",
+          "color": "#FF6600",
+          "sounds": [],
+          "mode": "production"
+        }
+      ]
     ],
     "extra": {
       "eas": {

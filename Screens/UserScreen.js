@@ -272,7 +272,7 @@ const UserScreen = () => {
                          "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
                        )
                      }
-                         > 
+                         >
                      <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
                    </TouchableOpacity>
             <TouchableOpacity
@@ -282,77 +282,6 @@ const UserScreen = () => {
               <Icon name="share-social-outline" size={20} color="#333" />
             </TouchableOpacity>
           </View>
-          <Modal
-                  visible={!!selectedPost}
-                  animationType="slide"
-                  transparent
-                  style={{ margin: 0 }}
-                  onRequestClose={() => setSelectedPost(null)}
-                >
-                  <View style={styles.modalOverlay}>
-                    <Pressable
-                      style={StyleSheet.absoluteFill}
-                      onPress={() => setSelectedPost(null)}
-                    />
-                    <View style={styles.modalContent}>
-                      <ScrollView
-                        contentContainerStyle={{ paddingBottom: 30 }}
-                        showsVerticalScrollIndicator={false}
-                        nestedScrollEnabled
-                      >
-                        <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-                        {selectedPost?.images?.length > 0 && (
-                          <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            pagingEnabled
-                            decelerationRate="fast"
-                            snapToInterval={260}
-                            nestedScrollEnabled
-                            style={{ marginVertical: 10 }}
-                          >
-                            {selectedPost.images.map((img, idx) => (
-                              <Image
-                                key={idx}
-                                source={{ uri: img.asset.url }}
-                                style={{
-                                  width: 250,
-                                  aspectRatio: 1,
-                                  borderRadius: 10,
-                                  marginRight: 10,
-                                }}
-                                resizeMode="contain"
-                              />
-                            ))}
-                          </ScrollView>
-                        )}
-                        <Text style={styles.modalDescription}>
-                          {Array.isArray(selectedPost?.body)
-                            ? selectedPost.body
-                                .map((block) =>
-                                  Array.isArray(block.children)
-                                    ? block.children.map((child) => child.text).join("")
-                                    : ""
-                                )
-                                .join("\n\n")
-                            : typeof selectedPost?.body === "string"
-                            ? selectedPost.body
-                            : "No content available"}
-                        </Text>
-                        <Text style={styles.modalHashtags}>
-                          {selectedPost?.hashtags?.length
-                            ? selectedPost.hashtags
-                                .map((tag) => `${tag.hashtag}`)
-                                .join("\n")
-                            : "No hashtags"}
-                        </Text>
-                        <Text style={styles.modalTime}>
-                          {new Date(selectedPost?._createdAt).toLocaleString()}
-                        </Text>
-                      </ScrollView>
-                    </View>
-                  </View>
-                </Modal>
         </View>
       </TouchableOpacity>
     );
@@ -438,6 +367,79 @@ const UserScreen = () => {
           </Text>
         )}
       />
+
+      {/* Modal outside FlatList for smooth rendering */}
+      <Modal
+        visible={!!selectedPost}
+        animationType="slide"
+        transparent
+        style={{ margin: 0 }}
+        onRequestClose={() => setSelectedPost(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedPost(null)}
+          />
+          <View style={styles.modalContent}>
+            <ScrollView
+              contentContainerStyle={{ paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+              {selectedPost?.images?.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  pagingEnabled
+                  decelerationRate="fast"
+                  snapToInterval={260}
+                  nestedScrollEnabled
+                  style={{ marginVertical: 10 }}
+                >
+                  {selectedPost.images.map((img, idx) => (
+                    <Image
+                      key={idx}
+                      source={{ uri: img.asset.url }}
+                      style={{
+                        width: 250,
+                        aspectRatio: 1,
+                        borderRadius: 10,
+                        marginRight: 10,
+                      }}
+                      resizeMode="contain"
+                    />
+                  ))}
+                </ScrollView>
+              )}
+              <Text style={styles.modalDescription}>
+                {Array.isArray(selectedPost?.body)
+                  ? selectedPost.body
+                      .map((block) =>
+                        Array.isArray(block.children)
+                          ? block.children.map((child) => child.text).join("")
+                          : ""
+                      )
+                      .join("\n\n")
+                  : typeof selectedPost?.body === "string"
+                  ? selectedPost.body
+                  : "No content available"}
+              </Text>
+              <Text style={styles.modalHashtags}>
+                {selectedPost?.hashtags?.length
+                  ? selectedPost.hashtags
+                      .map((tag) => `${tag.hashtag}`)
+                      .join("\n")
+                  : "No hashtags"}
+              </Text>
+              <Text style={styles.modalTime}>
+                {new Date(selectedPost?._createdAt).toLocaleString()}
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

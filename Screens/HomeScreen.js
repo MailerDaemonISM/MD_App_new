@@ -26,6 +26,8 @@ import NotificationButton from "../components/notification";
 import { Linking } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react/cjs/react.development";
+import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -72,7 +74,7 @@ const HomeScreen = () => {
 );
 
 
-  // Fetch ALL posts once
+  // Fetch ALL posts once and set up periodic checking
   useEffect(() => {
     const fetchAllPosts = async () => {
       setIsLoading(true);
@@ -88,6 +90,11 @@ const HomeScreen = () => {
         const result = await client.fetch(query);
         setAllPosts(result);
         setVisiblePosts(result.slice(0, postsPerPage));
+
+        // Check for new posts and notify users
+        const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
+        const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
+        await checkAndNotifyNewPosts(result, isToggleOn);
       } catch (error) {
         console.error("❌ Error fetching posts:", error);
       } finally {
@@ -95,7 +102,42 @@ const HomeScreen = () => {
       }
     };
 
+    // Initial fetch
     fetchAllPosts();
+
+    // Set up periodic checking for new posts every 30 seconds
+    const intervalId = setInterval(async () => {
+      try {
+        const query = `*[_type == "post"] | order(_createdAt desc) {
+          _id,
+          title,
+          body,
+          images[]{asset->{url}},
+          _createdAt,
+          hashtags[]->{ _id, hashtag }
+        }`;
+        const result = await client.fetch(query);
+
+        // Get toggle state
+        const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
+        const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
+
+        // Check for new posts and notify
+        const hasNewPost = await checkAndNotifyNewPosts(result, isToggleOn);
+
+        // If there's a new post, update the UI
+        if (hasNewPost) {
+          setAllPosts(result);
+          setVisiblePosts(result.slice(0, postsPerPage));
+          setCurrentPage(1); // Reset to first page to show new post
+        }
+      } catch (error) {
+        console.error("❌ Error checking for new posts:", error);
+      }
+    }, 30000); // Check every 30 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   // Load more posts locally
