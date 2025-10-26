@@ -1,5 +1,5 @@
 // HomeScreen.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react/cjs/react.development";
 import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RefreshControl } from "react-native-gesture-handler";
+import { Animated } from "react-native";
+import LottieView from "lottie-react-native"; // optional
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -35,8 +38,8 @@ const hashtagColorMap = hashtagData.reduce((map, tag) => {
 }, {});
 
 const HomeScreen = () => {
-  const [allPosts, setAllPosts] = useState([]); 
-  const [visiblePosts, setVisiblePosts] = useState([]); 
+  const [allPosts, setAllPosts] = useState([]);
+  const [visiblePosts, setVisiblePosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -45,63 +48,65 @@ const HomeScreen = () => {
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
   const postsPerPage = 5;
+  const [refreshing, setRefreshing] = useState(false); // <-- new state
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
 
   // Fetch user bookmarks
- useFocusEffect(
-  useCallback(() => {
-    const fetchUserBookmarks = async () => {
-      if (!isSignedIn || !user) return;
-      try {
-        const query = `*[_type=="user" && clerkId==$clerkId][0]{
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserBookmarks = async () => {
+        if (!isSignedIn || !user) return;
+        try {
+          const query = `*[_type=="user" && clerkId==$clerkId][0]{
           saved_post[]->{ _id }
         }`;
-        const data = await client.fetch(query, { clerkId: user.id });
-        if (data?.saved_post) {
-          setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
-        } else {
-          setBookmarkedPosts(new Set());
+          const data = await client.fetch(query, { clerkId: user.id });
+          if (data?.saved_post) {
+            setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
+          } else {
+            setBookmarkedPosts(new Set());
+          }
+        } catch (err) {
+          console.error("Error fetching user bookmarks:", err);
         }
-      } catch (err) {
-        console.error("Error fetching user bookmarks:", err);
-      }
-    };
+      };
 
-    fetchUserBookmarks();
-  }, [isSignedIn, user])
-);
+      fetchUserBookmarks();
+    }, [isSignedIn, user])
+  );
 
 
   // Fetch ALL posts once and set up periodic checking
+  const fetchAllPosts = async () => {
+    setIsLoading(true);
+    try {
+      const query = `*[_type == "post"] | order(_createdAt desc) {
+        _id,
+        title,
+        body,
+        images[]{asset->{url}},
+        _createdAt,
+        hashtags[]->{ _id, hashtag }
+      }`;
+      const result = await client.fetch(query);
+      setAllPosts(result);
+      setVisiblePosts(result.slice(0, postsPerPage));
+
+      // Check for new posts and notify users
+      const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
+      const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
+      await checkAndNotifyNewPosts(result, isToggleOn);
+    } catch (error) {
+      console.error("❌ Error fetching posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAllPosts = async () => {
-      setIsLoading(true);
-      try {
-        const query = `*[_type == "post"] | order(_createdAt desc) {
-          _id,
-          title,
-          body,
-          images[]{asset->{url}},
-          _createdAt,
-          hashtags[]->{ _id, hashtag }
-        }`;
-        const result = await client.fetch(query);
-        setAllPosts(result);
-        setVisiblePosts(result.slice(0, postsPerPage));
-
-        // Check for new posts and notify users
-        const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
-        const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-        await checkAndNotifyNewPosts(result, isToggleOn);
-      } catch (error) {
-        console.error("❌ Error fetching posts:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     // Initial fetch
     fetchAllPosts();
 
@@ -134,10 +139,17 @@ const HomeScreen = () => {
       } catch (error) {
         console.error("❌ Error checking for new posts:", error);
       }
-    }, 30000); // Check every 30 seconds
+    }, 3000); // Check every 3 seconds
 
     // Cleanup interval on unmount
     return () => clearInterval(intervalId);
+  }, []);
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAllPosts();
+    setRefreshing(false);
   }, []);
 
   // Load more posts locally
@@ -156,19 +168,18 @@ const HomeScreen = () => {
   // share
   const handleShare = async (post) => {
     try {
-      const message = `${post.title}\n\n${
-        Array.isArray(post.body)
-          ? post.body
-              .map((block) =>
-                Array.isArray(block.children)
-                  ? block.children.map((child) => child.text).join("")
-                  : ""
-              )
-              .join("\n\n")
-          : typeof post.body === "string"
+      const message = `${post.title}\n\n${Array.isArray(post.body)
+        ? post.body
+          .map((block) =>
+            Array.isArray(block.children)
+              ? block.children.map((child) => child.text).join("")
+              : ""
+          )
+          .join("\n\n")
+        : typeof post.body === "string"
           ? post.body
           : ""
-      }`;
+        }`;
       await Share.share({ message });
     } catch (error) {
       console.error("Error sharing post:", error);
@@ -221,15 +232,15 @@ const HomeScreen = () => {
   const renderItem = ({ item }) => {
     const description = Array.isArray(item.body)
       ? item.body
-          .map((block) =>
-            Array.isArray(block.children)
-              ? block.children.map((child) => child.text).join("")
-              : ""
-          )
-          .join("\n\n")
+        .map((block) =>
+          Array.isArray(block.children)
+            ? block.children.map((child) => child.text).join("")
+            : ""
+        )
+        .join("\n\n")
       : typeof item.body === "string"
-      ? item.body
-      : "";
+        ? item.body
+        : "";
 
     const firstTag = item.hashtags?.[0]?.hashtag;
     const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
@@ -272,13 +283,13 @@ const HomeScreen = () => {
               />
             </TouchableOpacity>
             <TouchableOpacity
-                      style={styles.iconButton}
-                      onPress={() =>
-                        Linking.openURL(
-                          "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
-                        )
-                      }
-                  > 
+              style={styles.iconButton}
+              onPress={() =>
+                Linking.openURL(
+                  "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                )
+              }
+            >
               <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -293,162 +304,204 @@ const HomeScreen = () => {
     );
   };
 
- // Filter by search and hashtag
-const filteredPosts = allPosts.filter((post) => {
-  const matchesSearch = (post.title || "")
-    .toLowerCase()
-    .includes(searchQuery.toLowerCase());
-  const matchesHashtag =
-    selectedHashtag === "All" ||
-    post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
-  return matchesSearch && matchesHashtag;
-});
+  // Filter by search and hashtag
+  const filteredPosts = allPosts.filter((post) => {
+    const matchesSearch = (post.title || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesHashtag =
+      selectedHashtag === "All" ||
+      post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
+    return matchesSearch && matchesHashtag;
+  });
 
-//all posts should be rendered
-const postsToRender =
-  searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
+  //all posts should be rendered
+  const postsToRender =
+    searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
 
   const allHashtags = Array.from(
     new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
+return (
+  <View style={styles.container}>
+    {/* Header */}
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
+      <View style={styles.headerRightIcons}>
+        <TouchableOpacity
+          onPress={() => setSearchVisible(!searchVisible)}
+          style={styles.iconButton}
+        >
+          <Icon name="search-outline" size={26} color="#333" />
+        </TouchableOpacity>
+        <NotificationButton />
+      </View>
+    </View>
 
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-        <View style={styles.headerRightIcons}>
+    {/* Search bar */}
+    {searchVisible && (
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search posts..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={styles.searchBox}
+        />
+        {searchQuery.length > 0 && (
           <TouchableOpacity
-            onPress={() => setSearchVisible(!searchVisible)}
-            style={styles.iconButton}
+            onPress={() => setSearchQuery("")}
+            style={styles.clearButton}
           >
-            <Icon name="search-outline" size={26} color="#333" />
+            <Icon name="close" size={22} color="#777" />
           </TouchableOpacity>
-          <NotificationButton />
+        )}
+      </View>
+    )}
+
+    {/* Loading state */}
+    {isLoading && visiblePosts.length === 0 ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#333" />
+      </View>
+    ) : (
+      <Animated.FlatList
+        data={postsToRender}
+        renderItem={renderItem}
+        keyExtractor={(item) => item._id}
+        onEndReachedThreshold={0.5}
+        onEndReached={
+          !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
+        }
+        ListFooterComponent={
+          !searchQuery && selectedHashtag === "All" && isLoading ? (
+            <View style={styles.loadingFooter}>
+              <ActivityIndicator size="small" color="#333" />
+              <Text>Loading more posts...</Text>
+            </View>
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#ff6b6b" // iOS spinner color
+            colors={["#ff6b6b", "#feca57", "#1dd1a1"]} // Android spinner colors
+            progressBackgroundColor="#fff"
+          />
+        }
+        scrollEventThrottle={16}
+      />
+    )}
+
+    {/* Floating Hashtag Button */}
+    <FloatingButton
+      hashtags={allHashtags}
+      selectedHashtag={selectedHashtag}
+      onSelectHashtag={setSelectedHashtag}
+    />
+
+    {/* Post Modal */}
+    <Modal
+      visible={!!selectedPost}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setSelectedPost(null)}
+    >
+      <View style={styles.modalOverlay}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setSelectedPost(null)}
+        />
+        <View style={styles.modalContent}>
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 30 }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+
+            {/* Images Carousel */}
+            {selectedPost?.images?.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                pagingEnabled
+                decelerationRate="fast"
+                snapToInterval={260}
+                nestedScrollEnabled
+                style={{ marginVertical: 10 }}
+              >
+                {selectedPost.images.map((img, idx) => (
+                  <Image
+                    key={idx}
+                    source={{ uri: img.asset.url }}
+                    style={{
+                      width: 250,
+                      aspectRatio: 1,
+                      borderRadius: 10,
+                      marginRight: 10,
+                    }}
+                    resizeMode="contain"
+                  />
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Post Content */}
+            <Text style={styles.modalDescription}>
+              {Array.isArray(selectedPost?.body)
+                ? selectedPost.body
+                    .map((block) =>
+                      Array.isArray(block.children)
+                        ? block.children.map((child) => child.text).join("")
+                        : ""
+                    )
+                    .join("\n\n")
+                : typeof selectedPost?.body === "string"
+                ? selectedPost.body
+                : "No content available"}
+            </Text>
+
+            {/* Hashtags */}
+            <Text style={styles.modalHashtags}>
+              {selectedPost?.hashtags?.length
+                ? selectedPost.hashtags
+                    .map((tag) => `${tag.hashtag}`)
+                    .join("\n")
+                : "No hashtags"}
+            </Text>
+
+            {/* Timestamp */}
+            <Text style={styles.modalTime}>
+              {new Date(selectedPost?._createdAt).toLocaleString()}
+            </Text>
+          </ScrollView>
         </View>
       </View>
+    </Modal>
 
-  {searchVisible && (
-  <View style={styles.searchContainer}>
-    <TextInput
-      placeholder="Search posts..."
-      value={searchQuery}
-      onChangeText={setSearchQuery}
-      style={styles.searchBox}
-    />
-    {searchQuery.length > 0 && (
-      <TouchableOpacity
-        onPress={() => setSearchQuery("")}
-        style={styles.clearButton}
+    {/* Optional Lottie Animation for pull-to-refresh */}
+    {refreshing && (
+      <View
+        style={{
+          position: "absolute",
+          top: -60,
+          left: 0,
+          right: 0,
+          alignItems: "center",
+        }}
       >
-        <Icon name="close" size={22} color="#777" />
-      </TouchableOpacity>
+        <LottieView
+          source={require("../assets/refresh.json")} // your Lottie JSON
+          autoPlay
+          loop
+          style={{ width: 60, height: 60 }}
+        />
+      </View>
     )}
   </View>
-)}
-      {isLoading && visiblePosts.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#333" />
-        </View>
-      ) : (
-        <FlatList
-          data={postsToRender}
-          renderItem={renderItem}
-          keyExtractor={(item) => item._id}
-          onEndReachedThreshold={0.5}
-          onEndReached={
-            !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
-          }
-          ListFooterComponent={
-            !searchQuery && selectedHashtag === "All" && isLoading ? (
-              <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color="#333" />
-                <Text>Loading more posts...</Text>
-              </View>
-            ) : null
-          }
-        />
-      )}
+);
 
-      <FloatingButton
-        hashtags={allHashtags}
-        selectedHashtag={selectedHashtag}
-        onSelectHashtag={setSelectedHashtag}
-      />
-
-      {/* Post Modal */}
-      <Modal
-        visible={!!selectedPost}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectedPost(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedPost(null)}
-          />
-          <View style={styles.modalContent}>
-            <ScrollView
-              contentContainerStyle={{ paddingBottom: 30 }}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-              {selectedPost?.images?.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  pagingEnabled
-                  decelerationRate="fast"
-                  snapToInterval={260}
-                  nestedScrollEnabled
-                  style={{ marginVertical: 10 }}
-                >
-                  {selectedPost.images.map((img, idx) => (
-                    <Image
-                      key={idx}
-                      source={{ uri: img.asset.url }}
-                      style={{
-                        width: 250,
-                        aspectRatio: 1,
-                        borderRadius: 10,
-                        marginRight: 10,
-                      }}
-                      resizeMode="contain"
-                    />
-                  ))}
-                </ScrollView>
-              )}
-              <Text style={styles.modalDescription}>
-                {Array.isArray(selectedPost?.body)
-                  ? selectedPost.body
-                      .map((block) =>
-                        Array.isArray(block.children)
-                          ? block.children.map((child) => child.text).join("")
-                          : ""
-                      )
-                      .join("\n\n")
-                  : typeof selectedPost?.body === "string"
-                  ? selectedPost.body
-                  : "No content available"}
-              </Text>
-              <Text style={styles.modalHashtags}>
-                {selectedPost?.hashtags?.length
-                  ? selectedPost.hashtags
-                      .map((tag) => `${tag.hashtag}`)
-                      .join("\n")
-                  : "No hashtags"}
-              </Text>
-              <Text style={styles.modalTime}>
-                {new Date(selectedPost?._createdAt).toLocaleString()}
-              </Text>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
 };
 
 export default HomeScreen;
