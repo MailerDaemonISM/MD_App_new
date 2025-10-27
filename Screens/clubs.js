@@ -89,50 +89,52 @@ const Clubs = () => {
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              {selectedClub?.logoUrl && (
-                <Image
-                  source={{ uri: selectedClub.logoUrl }}
-                  style={styles.modalLogo}
-                />
-              )}
-              <Text style={styles.modalTitle}>{selectedClub?.name}</Text>
-            </View>
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                {selectedClub?.logoUrl && (
+                  <Image
+                    source={{ uri: selectedClub.logoUrl }}
+                    style={styles.modalLogo}
+                  />
+                )}
+                <Text style={styles.modalTitle}>{selectedClub?.name}</Text>
+              </View>
 
-            {/* Info */}
-            <Text style={styles.infoText}>
-              <Text style={styles.bold}>SAC Room No: </Text>
-              {selectedClub?.sacRoomNo}
-            </Text>
-            <Text style={styles.infoText}>
-              <Text style={styles.bold}>Established: </Text>
-              {selectedClub?.establishmentYear}
-            </Text>
+              {/* Info */}
+              <Text style={styles.infoText}>
+                <Text style={styles.bold}>SAC Room No: </Text>
+                {selectedClub?.sacRoomNo}
+              </Text>
+              <Text style={styles.infoText}>
+                <Text style={styles.bold}>Established: </Text>
+                {selectedClub?.establishmentYear}
+              </Text>
 
-            {/* Body */}
-            <ScrollView style={{ marginTop: 10, maxHeight: 200 }}>
-              <PortableText value={selectedClub?.body} />
+              {/* Body */}
+              <View style={{ marginTop: 10 }}>
+                <PortableText value={selectedClub?.body} />
+              </View>
+
+              {/* Social Media Links */}
+              <View style={styles.socialRow}>
+                {selectedClub?.facebook && (
+                  <TouchableOpacity onPress={() => openLink(selectedClub.facebook)}>
+                    <FontAwesome name="facebook-square" size={30} color="#1877F2" />
+                  </TouchableOpacity>
+                )}
+                {selectedClub?.instagram && (
+                  <TouchableOpacity onPress={() => openLink(selectedClub.instagram)}>
+                    <FontAwesome name="instagram" size={30} color="#E4405F" />
+                  </TouchableOpacity>
+                )}
+                {selectedClub?.website && (
+                  <TouchableOpacity onPress={() => openLink(selectedClub.website)}>
+                    <FontAwesome name="globe" size={30} color="#000" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </ScrollView>
-
-            {/* Social Media Links */}
-            <View style={styles.socialRow}>
-              {selectedClub?.facebook && (
-                <TouchableOpacity onPress={() => openLink(selectedClub.facebook)}>
-                  <FontAwesome name="facebook-square" size={30} color="#1877F2" />
-                </TouchableOpacity>
-              )}
-              {selectedClub?.instagram && (
-                <TouchableOpacity onPress={() => openLink(selectedClub.instagram)}>
-                  <FontAwesome name="instagram" size={30} color="#E4405F" />
-                </TouchableOpacity>
-              )}
-              {selectedClub?.website && (
-                <TouchableOpacity onPress={() => openLink(selectedClub.website)}>
-                  <FontAwesome name="globe" size={30} color="#000" />
-                </TouchableOpacity>
-              )}
-            </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>

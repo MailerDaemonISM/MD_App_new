@@ -13,6 +13,7 @@ import {
   Pressable,
   Image,
   StyleSheet,
+  AppState,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -49,6 +50,8 @@ const HomeScreen = () => {
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
   const postsPerPage = 5;
   const [refreshing, setRefreshing] = useState(false); // <-- new state
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [refreshLimitMessage, setRefreshLimitMessage] = useState("");
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Clerk auth user
@@ -106,50 +109,122 @@ const HomeScreen = () => {
     }
   };
 
+  // Background notification check function
+  const checkPostsInBackground = async () => {
+    try {
+      const query = `*[_type == "post"] | order(_createdAt desc) {
+        _id,
+        title,
+        body,
+        images[]{asset->{url}},
+        _createdAt,
+        hashtags[]->{ _id, hashtag }
+      }`;
+      const result = await client.fetch(query);
+
+      // Get toggle state
+      const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
+      const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
+
+      // Check for new posts and notify
+      const hasNewPost = await checkAndNotifyNewPosts(result, isToggleOn);
+
+      // If there's a new post, update the UI when app comes back to focus
+      if (hasNewPost) {
+        setAllPosts(result);
+        setVisiblePosts(result.slice(0, postsPerPage));
+        setCurrentPage(1);
+      }
+    } catch (error) {
+      console.error("❌ Error checking for new posts in background:", error);
+    }
+  };
+
   useEffect(() => {
     // Initial fetch
     fetchAllPosts();
 
-    // Set up periodic checking for new posts every 30 seconds
+    // Set up periodic checking for new posts every 3 seconds
     const intervalId = setInterval(async () => {
-      try {
-        const query = `*[_type == "post"] | order(_createdAt desc) {
-          _id,
-          title,
-          body,
-          images[]{asset->{url}},
-          _createdAt,
-          hashtags[]->{ _id, hashtag }
-        }`;
-        const result = await client.fetch(query);
-
-        // Get toggle state
-        const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
-        const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-
-        // Check for new posts and notify
-        const hasNewPost = await checkAndNotifyNewPosts(result, isToggleOn);
-
-        // If there's a new post, update the UI
-        if (hasNewPost) {
-          setAllPosts(result);
-          setVisiblePosts(result.slice(0, postsPerPage));
-          setCurrentPage(1); // Reset to first page to show new post
-        }
-      } catch (error) {
-        console.error("❌ Error checking for new posts:", error);
-      }
+      await checkPostsInBackground();
     }, 3000); // Check every 3 seconds
 
-    // Cleanup interval on unmount
-    return () => clearInterval(intervalId);
+    // Cleanup on unmount
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
-  // Pull-to-refresh handler
+  // Load refresh count on mount
+  useEffect(() => {
+    const loadRefreshCount = async () => {
+      try {
+        const today = new Date().toDateString();
+        const storedData = await AsyncStorage.getItem('@refresh_limit');
+
+        if (storedData) {
+          const { date, count } = JSON.parse(storedData);
+
+          // Reset count if it's a new day
+          if (date !== today) {
+            await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: 0 }));
+            setRefreshCount(0);
+            setRefreshLimitMessage("");
+          } else {
+            setRefreshCount(count);
+            if (count >= 5) {
+              setRefreshLimitMessage("You've reached your 5 refreshes for today!");
+            }
+          }
+        } else {
+          // First time
+          await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: 0 }));
+          setRefreshCount(0);
+        }
+      } catch (error) {
+        console.error("Error loading refresh count:", error);
+      }
+    };
+
+    loadRefreshCount();
+  }, []);
+
+  // Pull-to-refresh handler with limit
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchAllPosts();
-    setRefreshing(false);
+    try {
+      const today = new Date().toDateString();
+      const storedData = await AsyncStorage.getItem('@refresh_limit');
+      let currentCount = 0;
+
+      if (storedData) {
+        const { date, count } = JSON.parse(storedData);
+        currentCount = date === today ? count : 0;
+      }
+
+      // Check if limit reached
+      if (currentCount >= 5) {
+        setRefreshLimitMessage("You've reached your 5 refreshes for today! Try again tomorrow.");
+        return;
+      }
+
+      // Increment refresh count
+      const newCount = currentCount + 1;
+      await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: newCount }));
+      setRefreshCount(newCount);
+
+      if (newCount >= 5) {
+        setRefreshLimitMessage("You've reached your 5 refreshes for today!");
+      } else {
+        setRefreshLimitMessage(`${5 - newCount} refreshes remaining today`);
+      }
+
+      setRefreshing(true);
+      await fetchAllPosts();
+      setRefreshing(false);
+    } catch (error) {
+      console.error("Error during refresh:", error);
+      setRefreshing(false);
+    }
   }, []);
 
   // Load more posts locally

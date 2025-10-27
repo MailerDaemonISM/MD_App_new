@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, Image, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, StatusBar,SafeAreaView, } from 'react-native';
 
 const AboutUs = () => {
     return (
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.header}>
                 <Image source={require('../assets/md.jpg')} style={styles.logo} />
@@ -29,10 +31,19 @@ const AboutUs = () => {
                 Join us in celebrating the spirit of IIT (ISM) Dhanbad—stay connected, stay curious, and make every moment count.
             </Text>
         </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#FFFFFF', // full-screen background
+    },
+    scroll: {
+        flex: 1,
+        backgroundColor: '#FFFFFF', // ensure ScrollView background also white
+    },
     container: {
         padding: 20,
         backgroundColor: '#FFFFFF',

@@ -1,71 +1,88 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendLocalNotification, areNotificationsEnabled } from './notificationService';
+import { client } from '../sanity'; // 👈 adjust import path
 
 const LAST_POST_ID_KEY = '@last_notified_post_id';
+let isNotifying = false; // 🧠 Lock flag to prevent double notification
 
 /**
- * Check for new posts and notify users
- * @param {Array} posts - Array of posts from Sanity (should be sorted by _createdAt desc)
- * @param {boolean} notificationToggle - Whether notifications are enabled
- * @returns {Promise<boolean>} - Returns true if a new post was found and notification sent
+ * Check for new *published* posts and notify users
+ * Ignores drafts, waits 3 seconds after publish, and prevents duplicates.
  */
 export async function checkAndNotifyNewPosts(posts, notificationToggle = true) {
   try {
-    // Check if notifications are enabled by toggle
+    // 🚫 Prevent overlapping runs
+    if (isNotifying) {
+      console.log('Already notifying, skipping duplicate trigger.');
+      return false;
+    }
+
     if (!notificationToggle) {
       console.log('Notifications toggle is OFF, skipping check');
       return false;
     }
 
-    // Check if notifications are enabled in system
     const notificationsEnabled = await areNotificationsEnabled();
     if (!notificationsEnabled) {
       console.log('Notifications not enabled in system, skipping check');
       return false;
     }
 
-    // If no posts, return
-    if (!posts || posts.length === 0) {
+    if (!posts || posts.length === 0) return false;
+
+    // Filter out drafts
+    const latestPost = posts.find(post => !post._id.startsWith('drafts.'));
+    if (!latestPost) {
+      console.log('No published post found yet');
       return false;
     }
 
-    // Get the most recent post
-    const latestPost = posts[0];
-
-    // Check if post is published (has _id and _createdAt)
-    if (!latestPost._id || !latestPost._createdAt) {
-      console.log('Post not fully published yet');
-      return false;
-    }
-
-    // Get the last notified post ID from storage
     const lastNotifiedPostId = await AsyncStorage.getItem(LAST_POST_ID_KEY);
 
-    // If this is the first time or there's a new post
+    // First-time setup (don't notify)
     if (!lastNotifiedPostId) {
-      // First time - just save the current latest post ID without notifying
       await AsyncStorage.setItem(LAST_POST_ID_KEY, latestPost._id);
-      console.log('First time setup - saved latest post ID:', latestPost._id);
+      console.log('Initial setup - saved latest published post ID:', latestPost._id);
       return false;
     }
 
-    // Check if there's a new post
+    // Check if new post
     if (latestPost._id !== lastNotifiedPostId) {
-      console.log('New post detected!', latestPost.title);
+      console.log('Possible new post detected:', latestPost.title);
 
-      // Send notification
+      // 🧠 Set lock to prevent duplicates
+      isNotifying = true;
+
+      // Wait for 3 seconds to ensure full publish
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Re-fetch posts for confirmation
+      const updatedPosts = await client.fetch(`*[_type == "post"] | order(_createdAt desc)`);
+      const confirmedPost = updatedPosts.find(p => !p._id.startsWith('drafts.'));
+
+      if (!confirmedPost || confirmedPost._id.startsWith('drafts.')) {
+        console.log('Post still draft or not stable after delay, skipping notification');
+        isNotifying = false;
+        return false;
+      }
+
+      console.log('✅ Confirmed published post:', confirmedPost.title);
+
+      // Send notification once
       await sendLocalNotification(
-        " 🔔New Post from Mailer Daemon!",
-        latestPost.title,
+        '🔔 New Post from Mailer Daemon!',
+        confirmedPost.title,
         {
-          postId: latestPost._id,
+          postId: confirmedPost._id,
           type: 'new_post',
-          title: latestPost.title
+          title: confirmedPost.title
         }
       );
 
-      // Update the last notified post ID
-      await AsyncStorage.setItem(LAST_POST_ID_KEY, latestPost._id);
+      await AsyncStorage.setItem(LAST_POST_ID_KEY, confirmedPost._id);
+
+      // 🧹 Unlock after completion
+      isNotifying = false;
 
       return true;
     }
@@ -73,13 +90,12 @@ export async function checkAndNotifyNewPosts(posts, notificationToggle = true) {
     return false;
   } catch (error) {
     console.error('Error checking for new posts:', error);
+    isNotifying = false; // ensure unlock on failure
     return false;
   }
 }
 
-/**
- * Reset the last notified post (useful for testing)
- */
+/** Reset for testing */
 export async function resetLastNotifiedPost() {
   try {
     await AsyncStorage.removeItem(LAST_POST_ID_KEY);
@@ -89,10 +105,7 @@ export async function resetLastNotifiedPost() {
   }
 }
 
-/**
- * Get the last notified post ID
- * @returns {Promise<string|null>}
- */
+/** Get last notified post ID */
 export async function getLastNotifiedPostId() {
   try {
     return await AsyncStorage.getItem(LAST_POST_ID_KEY);
@@ -102,10 +115,7 @@ export async function getLastNotifiedPostId() {
   }
 }
 
-/**
- * Manually set the last notified post ID
- * @param {string} postId - The post ID to set
- */
+/** Manually set last notified post ID */
 export async function setLastNotifiedPostId(postId) {
   try {
     await AsyncStorage.setItem(LAST_POST_ID_KEY, postId);
@@ -114,4 +124,3 @@ export async function setLastNotifiedPostId(postId) {
     console.error('Error setting last notified post ID:', error);
   }
 }
-
