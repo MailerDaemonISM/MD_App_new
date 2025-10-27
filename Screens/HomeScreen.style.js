@@ -21,6 +21,9 @@ const styles = StyleSheet.create({
   },
   headerRightIcons: {
     flexDirection: "row",
+    justifyContent: "space-evenly",
+    width: 60,
+    gap: 0,
   },
   iconButton: {
     paddingHorizontal: 8,

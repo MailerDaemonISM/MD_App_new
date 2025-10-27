@@ -264,15 +264,18 @@ const HomeScreen = () => {
   // get sanity userId from clerkId
   const fetchSanityUserId = async (clerkId) => {
     const query = `*[_type == "user" && clerkId == $clerkId][0]{ _id }`;
-    return await client.fetch(query, { clerkId });
+    const res = await client.fetch(query, { clerkId });
+    return res;
   };
 
   // toggle bookmark button
   const handleBookmark = async (postId, clerkId) => {
+    console.log("queried this !!");
     if (!clerkId) return;
     try {
       const userDoc = await fetchSanityUserId(clerkId);
       const sanityUserId = userDoc?._id;
+      console.log("userDoc:", userDoc);
       if (!sanityUserId) return;
 
       const alreadySaved = bookmarkedPosts.has(postId);

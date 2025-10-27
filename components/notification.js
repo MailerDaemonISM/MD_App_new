@@ -66,7 +66,7 @@ export default function NotificationButton() {
   return (
     <TouchableOpacity
       onPress={handleNotificationPress}
-      style={{ padding: 2, marginLeft: 12 }}
+      style={{ padding: 2, marginLeft: 0 }}
     >
       <Icon
         name={enabled && toggleOn ? "bell" : "bell-o"}
