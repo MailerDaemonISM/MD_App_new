@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendLocalNotification, areNotificationsEnabled } from './notificationService';
-import { client } from '../sanity'; // 👈 adjust import path
+import { client } from '../sanity'; 
 
 const LAST_POST_ID_KEY = '@last_notified_post_id';
-let isNotifying = false; // 🧠 Lock flag to prevent double notification
+let isNotifying = false;
 
 /**
  * Check for new *published* posts and notify users
@@ -11,7 +11,7 @@ let isNotifying = false; // 🧠 Lock flag to prevent double notification
  */
 export async function checkAndNotifyNewPosts(posts, notificationToggle = true) {
   try {
-    // 🚫 Prevent overlapping runs
+    // Prevent overlapping runs
     if (isNotifying) {
       console.log('Already notifying, skipping duplicate trigger.');
       return false;
@@ -50,7 +50,7 @@ export async function checkAndNotifyNewPosts(posts, notificationToggle = true) {
     if (latestPost._id !== lastNotifiedPostId) {
       console.log('Possible new post detected:', latestPost.title);
 
-      // 🧠 Set lock to prevent duplicates
+      //Set lock to prevent duplicates
       isNotifying = true;
 
       // Wait for 3 seconds to ensure full publish
@@ -66,7 +66,7 @@ export async function checkAndNotifyNewPosts(posts, notificationToggle = true) {
         return false;
       }
 
-      console.log('✅ Confirmed published post:', confirmedPost.title);
+      console.log('Confirmed published post:', confirmedPost.title);
 
       // Send notification once
       await sendLocalNotification(
@@ -81,7 +81,7 @@ export async function checkAndNotifyNewPosts(posts, notificationToggle = true) {
 
       await AsyncStorage.setItem(LAST_POST_ID_KEY, confirmedPost._id);
 
-      // 🧹 Unlock after completion
+      //  Unlock after completion
       isNotifying = false;
 
       return true;

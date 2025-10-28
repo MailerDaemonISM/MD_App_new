@@ -67,12 +67,12 @@ const styles = StyleSheet.create({
         alignItems:'center',
     },
     title: {
-        fontSize: 24,
+        fontSize: 30,
         fontWeight: 'bold',
         color: '#E67E22',
     },
     subtitle: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: '600',
         fontStyle: 'italic',
         color: '#333333',
@@ -80,13 +80,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     tagline: {
-        fontSize: 18,
+        fontSize: 19,
         color: '#555555',
         textAlign: 'center',
         marginBottom: 15,
     },
     paragraph: {
-        fontSize: 16,
+        fontSize: 18,
         lineHeight: 24,
         textAlign: 'justify',
         color: '#444444',
