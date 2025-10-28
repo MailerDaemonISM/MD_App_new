@@ -4,13 +4,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
+    paddingHorizontal: 15,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
   },
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   searchBox: {
     backgroundColor: "#F0F0F0",
     padding: 10,
-    marginHorizontal: 16,
+    marginHorizontal: 10,
     borderRadius: 8,
     marginBottom: 10,
   },
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   cardTextContainer: {
     flex: 3,
-    paddingVertical: 16,
+    paddingVertical: 10,
     paddingHorizontal: 20,
   },
   cardTitle: {

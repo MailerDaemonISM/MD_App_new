@@ -56,8 +56,8 @@ export const importantMails = [
 export const timings = [
   // General Timings
   { category: "General", event: "Admin Block", time: "Weekdays 10:00 AM - 7:00 PM" },
-  { category: "General", event: "Boys Hostel", time: "5:00 AM - 12:00 AM" },
-  { category: "General", event: "Girls Hostel", time: "5:00 AM - 12:00 AM" },
+  { category: "General", event: "Boys Hostel", time: "5:00 AM - 3:00 AM" },
+  { category: "General", event: "Girls Hostel", time: "5:00 AM - 3:00 AM" },
   { category: "General", event: "Book Issue & Returning", time: "Weekdays 9:30 AM - 1:00 PM & 1:30 PM - 7:00 PM" },
   { category: "General", event: "Main Canteen", time: "7:00 AM - 11:30 PM" },
   { category: "General", event: "Health Centre", time: "24x7" },

@@ -75,7 +75,10 @@ export default function SignInScreen() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
+          <><Text style={styles.googleButtonText}>Continue with Google</Text>
+              //use your institute mail id 
+              <Text style={styles.instituteNote}>Use your Institute Email ID</Text></>
+
         )}
       </TouchableOpacity>
     </View>
@@ -125,4 +128,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  instituteNote: {
+  fontSize: 12,
+  color: '#ffffff', 
+  textAlign: 'center',
+  marginTop: 4,
+},
+
 });

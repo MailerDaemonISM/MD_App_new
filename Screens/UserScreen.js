@@ -90,7 +90,9 @@ const UserScreen = () => {
         }
       }`;
       const data = await client.fetch(query, { clerkId: user.id });
-      setSavedPosts(data?.saved_post || []);
+      // Reverse the array so last saved appears on top
+      const reversedPosts = (data?.saved_post || []).reverse();
+      setSavedPosts(reversedPosts);
       setUserDocId(data?._id);
     } catch (err) {
       console.error("Error fetching saved posts:", err);

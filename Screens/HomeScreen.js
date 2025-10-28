@@ -25,13 +25,14 @@ import { useUser } from "@clerk/clerk-expo";
 import { setUserIfNotExists } from "../api/user";
 import NotificationButton from "../components/notification";
 import { Linking } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useCallback } from "react/cjs/react.development";
 import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RefreshControl } from "react-native-gesture-handler";
 import { Animated } from "react-native";
 import LottieView from "lottie-react-native"; // optional
+import * as Notifications from 'expo-notifications';
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -39,6 +40,7 @@ const hashtagColorMap = hashtagData.reduce((map, tag) => {
 }, {});
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
   const [allPosts, setAllPosts] = useState([]);
   const [visiblePosts, setVisiblePosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,9 +51,7 @@ const HomeScreen = () => {
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
   const postsPerPage = 5;
-  const [refreshing, setRefreshing] = useState(false); // <-- new state
-  const [refreshCount, setRefreshCount] = useState(0);
-  const [refreshLimitMessage, setRefreshLimitMessage] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Clerk auth user
@@ -155,39 +155,27 @@ const HomeScreen = () => {
     };
   }, []);
 
-  // Load refresh count on mount
+
+
+  // Handle notification press to navigate to post
   useEffect(() => {
-    const loadRefreshCount = async () => {
-      try {
-        const today = new Date().toDateString();
-        const storedData = await AsyncStorage.getItem('@refresh_limit');
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const postId = response.notification.request.content.data.postId;
 
-        if (storedData) {
-          const { date, count } = JSON.parse(storedData);
+      if (postId) {
+        // Find the post in allPosts
+        const post = allPosts.find(p => p._id === postId);
 
-          // Reset count if it's a new day
-          if (date !== today) {
-            await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: 0 }));
-            setRefreshCount(0);
-            setRefreshLimitMessage("");
-          } else {
-            setRefreshCount(count);
-            if (count >= 5) {
-              setRefreshLimitMessage("You've reached your 5 refreshes for today!");
-            }
-          }
-        } else {
-          // First time
-          await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: 0 }));
-          setRefreshCount(0);
+        if (post) {
+          // Set the selected post to open the modal
+          setSelectedPost(post);
+          console.log('Navigating to post:', postId);
         }
-      } catch (error) {
-        console.error("Error loading refresh count:", error);
       }
-    };
+    });
 
-    loadRefreshCount();
-  }, []);
+    return () => subscription.remove();
+  }, [allPosts]);
 
   // Pull-to-refresh handler with limit
   const onRefresh = useCallback(async () => {
@@ -203,20 +191,12 @@ const HomeScreen = () => {
 
       // Check if limit reached
       if (currentCount >= 5) {
-        setRefreshLimitMessage("You've reached your 5 refreshes for today! Try again tomorrow.");
         return;
       }
 
       // Increment refresh count
       const newCount = currentCount + 1;
       await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: newCount }));
-      setRefreshCount(newCount);
-
-      if (newCount >= 5) {
-        setRefreshLimitMessage("You've reached your 5 refreshes for today!");
-      } else {
-        setRefreshLimitMessage(`${5 - newCount} refreshes remaining today`);
-      }
 
       setRefreshing(true);
       await fetchAllPosts();
