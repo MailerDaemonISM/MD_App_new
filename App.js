@@ -41,7 +41,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="MDHashtags" component={MDHashtags} />
       <Drawer.Screen name="AcademicCalendar" component={AcademicCalendar} />
       <Drawer.Screen name="map" component={CampusMap} options={{ title: "Campus Map" }} />
-      <Drawer.Screen name="clubs" component={Clubs} options={{ title: "Clubs Of IIT (ISM)" }} />
+      <Drawer.Screen name="clubs" component={Clubs} options={{ title: "Clubs & NGOs" }} />
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
       <Drawer.Screen name="Placementor" component={Placementor} />
       <Drawer.Screen name="UserScreen" component={UserScreen} options={{ title: "Saved Posts" }} />

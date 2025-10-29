@@ -5,7 +5,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Modal,
   StyleSheet,
   Image,
   ScrollView,
@@ -44,22 +43,91 @@ const Clubs = () => {
     if (url) Linking.openURL(url);
   };
 
-  const renderClub = ({ item }) => (
-    <TouchableOpacity
-      style={styles.clubItem}
-      onPress={() => setSelectedClub(item)}
-    >
-      {item.logoUrl ? (
-        <Image
-          source={{ uri: item.logoUrl }}
-          style={styles.clubLogo}
-        />
-      ) : (
-        <View style={[styles.clubLogo, { backgroundColor: "#ccc" }]} />
-      )}
-      <Text style={styles.clubName}>{item.name}</Text>
-    </TouchableOpacity>
-  );
+  const renderClub = ({ item }) => {
+    const isExpanded = selectedClub?._id === item._id;
+
+    return (
+      <View style={styles.accordionContainer}>
+        <TouchableOpacity
+          style={styles.clubItem}
+          onPress={() => setSelectedClub(isExpanded ? null : item)}
+        >
+          {item.logoUrl ? (
+            <Image
+              source={{ uri: item.logoUrl }}
+              style={styles.clubLogo}
+            />
+          ) : (
+            <View style={[styles.clubLogo, { backgroundColor: "#ccc" }]} />
+          )}
+          <Text style={styles.clubName}>{item.name}</Text>
+          <FontAwesome
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={18}
+            color="#666"
+            style={{ marginLeft: "auto" }}
+          />
+        </TouchableOpacity>
+
+        {/* Accordion Content */}
+        {isExpanded && (
+          <View style={styles.accordionContent}>
+            <ScrollView nestedScrollEnabled>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                {/* {item?.logoUrl && (
+                  <Image
+                    source={{ uri: item.logoUrl }}
+                    style={styles.modalLogo}
+                  />
+                )} */}
+                {/* <Text style={styles.modalTitle}>{item?.name}</Text> */}
+              </View>
+
+              {/* Info */}
+              {item?.sacRoomNo ? (
+                <Text style={styles.infoText}>
+                  <Text style={styles.bold}>Venue: </Text>
+                  {item.sacRoomNo}
+                </Text>
+              ) : null}
+
+              {item?.establishmentYear ? (
+                <Text style={styles.infoText}>
+                  <Text style={styles.bold}>Established: </Text>
+                  {item.establishmentYear}
+                </Text>
+              ) : null}
+
+              {/* Body */}
+              <View style={{ marginTop: 10 }}>
+                <PortableText value={item?.body} />
+              </View>
+
+              {/* Social Media Links */}
+              <View style={styles.socialRow}>
+                {item?.facebook && (
+                  <TouchableOpacity onPress={() => openLink(item.facebook)}>
+                    <FontAwesome name="facebook-square" size={30} color="#1877F2" />
+                  </TouchableOpacity>
+                )}
+                {item?.instagram && (
+                  <TouchableOpacity onPress={() => openLink(item.instagram)}>
+                    <FontAwesome name="instagram" size={30} color="#E4405F" />
+                  </TouchableOpacity>
+                )}
+                {item?.website && (
+                  <TouchableOpacity onPress={() => openLink(item.website)}>
+                    <FontAwesome name="globe" size={30} color="#000" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -71,73 +139,6 @@ const Clubs = () => {
         renderItem={renderClub}
         contentContainerStyle={{ paddingBottom: 20 }}
       />
-
-      {/* Modal */}
-      <Modal
-        visible={!!selectedClub}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectedClub(null)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setSelectedClub(null)}
-        >
-          <TouchableOpacity
-            style={styles.modalContent}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                {selectedClub?.logoUrl && (
-                  <Image
-                    source={{ uri: selectedClub.logoUrl }}
-                    style={styles.modalLogo}
-                  />
-                )}
-                <Text style={styles.modalTitle}>{selectedClub?.name}</Text>
-              </View>
-
-              {/* Info */}
-              <Text style={styles.infoText}>
-                <Text style={styles.bold}>SAC Room No: </Text>
-                {selectedClub?.sacRoomNo}
-              </Text>
-              <Text style={styles.infoText}>
-                <Text style={styles.bold}>Established: </Text>
-                {selectedClub?.establishmentYear}
-              </Text>
-
-              {/* Body */}
-              <View style={{ marginTop: 10 }}>
-                <PortableText value={selectedClub?.body} />
-              </View>
-
-              {/* Social Media Links */}
-              <View style={styles.socialRow}>
-                {selectedClub?.facebook && (
-                  <TouchableOpacity onPress={() => openLink(selectedClub.facebook)}>
-                    <FontAwesome name="facebook-square" size={30} color="#1877F2" />
-                  </TouchableOpacity>
-                )}
-                {selectedClub?.instagram && (
-                  <TouchableOpacity onPress={() => openLink(selectedClub.instagram)}>
-                    <FontAwesome name="instagram" size={30} color="#E4405F" />
-                  </TouchableOpacity>
-                )}
-                {selectedClub?.website && (
-                  <TouchableOpacity onPress={() => openLink(selectedClub.website)}>
-                    <FontAwesome name="globe" size={30} color="#000" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 };
@@ -149,12 +150,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     paddingHorizontal: 15,
-    //paddingTop: 40,
   },
   header: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
+  },
+  accordionContainer: {
+    marginVertical: 6,
+    //paddingVertical:8,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   clubItem: {
     flexDirection: "row",
@@ -162,11 +173,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 12,
-    marginVertical: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    marginVertical: 0,
   },
   clubLogo: {
     width: 40,
@@ -177,22 +184,19 @@ const styles = StyleSheet.create({
   clubName: {
     fontSize: 16,
     fontWeight: "500",
-  },
-  modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "70%",
+  accordionContent: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    maxHeight: 400,
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 10,
   },
   modalLogo: {
     width: 40,
@@ -205,11 +209,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flex: 1,
   },
-  closeButton: {
-    padding: 5,
-  },
   infoText: {
-    marginTop: 10,
+    //marginTop:4,
     fontSize: 14,
   },
   bold: {
