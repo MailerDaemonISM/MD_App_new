@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     width: 50,
     justifyContent: "space-around",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 15,
   },
   loadingContainer: {
     flex: 1,

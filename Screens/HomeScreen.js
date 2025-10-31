@@ -61,9 +61,31 @@ const HomeScreen = () => {
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
+  
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
+  useEffect(() => {
+  const syncUserWithSanity = async () => {
+    if (!isSignedIn || !user) return;
+
+    const userData = {
+      clerkId: user.id,
+      email: user.primaryEmailAddress?.emailAddress || "",
+      name: user.fullName || "",
+      username: user.username || user.firstName || "user",
+      image: user.imageUrl || "",
+    };
+
+    try {
+      await setUserIfNotExists(userData);
+    } catch (error) {
+      console.error("Error syncing user with Sanity:", error.message);
+    }
+  };
+
+  syncUserWithSanity();
+}, [isSignedIn, user]);
 
   // Fetch user bookmarks
   useFocusEffect(

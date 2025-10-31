@@ -215,79 +215,155 @@ const UserScreen = () => {
 
 
   // Home posts render (unchanged)
-  const renderItem = ({ item }) => {
-    const description = Array.isArray(item.body)
-      ? item.body
-          .map((block) =>
-            Array.isArray(block.children)
-              ? block.children.map((child) => child.text).join("")
-              : ""
-          )
-          .join("\n\n")
-      : typeof item.body === "string"
-      ? item.body
-      : "";
+ const renderItem = ({ item }) => {
+  const description = Array.isArray(item.body)
+    ? item.body
+        .map((block) =>
+          Array.isArray(block.children)
+            ? block.children.map((child) => child.text).join("")
+            : ""
+        )
+        .join("\n\n")
+    : typeof item.body === "string"
+    ? item.body
+    : "";
 
-    const firstTag = item.hashtags?.[0]?.hashtag;
-    const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
+  const firstTag = item.hashtags?.[0]?.hashtag;
+  const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
+  const hasImages = Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
 
-    return (
-      <TouchableOpacity onPress={() => handlePostPress(item)}>
-        <View style={styleshome.cardContainer}>
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text numberOfLines={3} style={styles.cardDescription}>
-              {description || "No content available"}
-            </Text>
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardLabel}>
-                {item.hashtags?.length
-                  ? item.hashtags.map((t) => t.hashtag).join(", ")
-                  : "No hashtags"}
-              </Text>
-              <Text style={styles.cardTime}>
-                {new Date(item._createdAt).toLocaleString()}
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}
-          >
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => toggleSavePost(item._id)}
+  return (
+    <TouchableOpacity onPress={() => handlePostPress(item)}>
+      <View style={[styleshome.cardContainer, hasImages && { paddingBottom: 0 }]}>
+        <View style={styles.cardTextContainer}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text numberOfLines={3} style={styles.cardDescription}>
+            {description || "No content available"}
+          </Text>
+
+          {/* ✅ Horizontal image scroller */}
+          {hasImages && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 10, marginBottom: 6 }}
+              contentContainerStyle={{ paddingRight: 16 }}
+              pagingEnabled
+              decelerationRate="fast"
             >
-              <Icon
-                name={
-                  savedPosts.some((p) => p._id === item._id)
-                    ? "bookmark"
-                    : "bookmark-outline"
+              {item.images.map((img, idx) => {
+                const imageUrl = img?.asset?.url;
+                if (!imageUrl) return null;
+
+                if (idx === 2 && item.images.length > 3) {
+                  return (
+                    <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={{
+                          width: 70,
+                          height: 70,
+                          borderRadius: 10,
+                          backgroundColor: "#fff",
+                        }}
+                        resizeMode="contain"
+                      />
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: 70,
+                          height: 70,
+                          borderRadius: 10,
+                          backgroundColor: "rgba(0,0,0,0.5)",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                          +{item.images.length - 3}
+                        </Text>
+                      </View>
+                    </View>
+                  );
                 }
-                size={20}
-                color="#333"
-              />
-            </TouchableOpacity>
-           <TouchableOpacity
-                     style={styles.iconButton}
-                     onPress={() =>
-                       Linking.openURL(
-                         "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
-                       )
-                     }
-                         >
-                     <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-                   </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => handleShare(item)}
-            >
-              <Icon name="share-social-outline" size={20} color="#333" />
-            </TouchableOpacity>
+                if (idx > 2) return null;
+
+                return (
+                  <Image
+                    key={idx}
+                    source={{ uri: imageUrl }}
+                    style={{
+                      width: 70,
+                      height: 70,
+                      borderRadius: 10,
+                      marginRight: 8,
+                      backgroundColor: "#fff",
+                    }}
+                    resizeMode="contain"
+                  />
+                );
+              })}
+            </ScrollView>
+          )}
+
+          <View style={styles.cardFooter}>
+            <View>
+              {item.hashtags?.length ? (
+                item.hashtags.map((t, i) => (
+                  <Text key={i} style={styles.cardLabel}>
+                    {t.hashtag}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.cardLabel}>No hashtags</Text>
+              )}
+            </View>
+            <Text style={styles.cardTime}>
+              {new Date(item._createdAt).toLocaleString()}
+            </Text>
           </View>
         </View>
-      </TouchableOpacity>
-    );
-  };
+
+        <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => toggleSavePost(item._id)}
+          >
+            <Icon
+              name={
+                savedPosts.some((p) => p._id === item._id)
+                  ? "bookmark"
+                  : "bookmark-outline"
+              }
+              size={20}
+              color="#333"
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+              )
+            }
+          >
+            <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => handleShare(item)}
+          >
+            <Icon name="share-social-outline" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
   // Placement cards (only updated for Details navigation)
   const renderPlacementCard = ({ item }) => {
