@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
+    //marginHorizontal: 5,
     overflow: "hidden",
     borderColor: "#ddd",
     shadowColor: "#000",
@@ -48,7 +49,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginTop: 7,
   },
   cardTextContainer: {
     flex: 3,
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#333333",
     marginBottom: 4,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   cardDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#444",
     marginBottom: 8,
   },
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     width: 50,
     justifyContent: "space-around",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   loadingContainer: {
     flex: 1,
