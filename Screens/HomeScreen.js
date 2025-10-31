@@ -56,9 +56,31 @@ const HomeScreen = () => {
   const postsPerPage = 5;
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
+  
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
+  useEffect(() => {
+  const syncUserWithSanity = async () => {
+    if (!isSignedIn || !user) return;
+
+    const userData = {
+      clerkId: user.id,
+      email: user.primaryEmailAddress?.emailAddress || "",
+      name: user.fullName || "",
+      username: user.username || user.firstName || "user",
+      image: user.imageUrl || "",
+    };
+
+    try {
+      await setUserIfNotExists(userData);
+    } catch (error) {
+      console.error("Error syncing user with Sanity:", error.message);
+    }
+  };
+
+  syncUserWithSanity();
+}, [isSignedIn, user]);
 
   // Fetch user bookmarks
   useFocusEffect(
@@ -330,64 +352,61 @@ const renderItem = ({ item }) => {
               decelerationRate="fast"
             >
              {item.images.map((img, idx) => {
-  const imageUrl = img?.asset?.url;
-  if (!imageUrl) return null;
+                  const imageUrl = img?.asset?.url;
+                  if (!imageUrl) return null;
 
-  // If there are more than 3 images and we're at index 2, show "+X more" overlay
-  if (idx === 2 && item.images.length > 3) {
-    return (
-      <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={{
-            width: 70,
-            height: 70,
-            borderRadius: 10,
-            backgroundColor: "#fff",
-          }}
-          resizeMode="contain"
-        />
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: 70,
-            height: 70,
-            borderRadius: 10,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-            +{item.images.length - 3}
-          </Text>
-        </View>
-      </View>
-    );
-  }
+                  // If there are more than 3 images and we're at index 2, show "+X more" overlay
+                  if (idx === 2 && item.images.length > 3) {
+                    return (
+                      <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "#fff",
+                          }}
+                          resizeMode="contain"
+                        />
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "rgba(0,0,0,0.5)",
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                            +{item.images.length - 3}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+                  if (idx > 2) 
+                  return null;
 
-  // Only show first 3 images (0, 1, 2)
-  if (idx > 2) return null;
-
-  return (
-    <Image
-      key={idx}
-      source={{ uri: imageUrl }}
-      style={{
-        width: 70,
-        height: 70,
-        borderRadius: 10,
-        marginRight: 8,
-        backgroundColor: "#fff",
-      }}
-      resizeMode="contain"
-    />
-  );
-})}
-
-
+                  return (
+                    <Image
+                      key={idx}
+                      source={{ uri: imageUrl }}
+                      style={{
+                        width: 70,
+                        height: 70,
+                        borderRadius: 10,
+                        marginRight: 8,
+                        backgroundColor: "#fff",
+                      }}
+                      resizeMode="contain"
+                    />
+                  );
+                })}
             </ScrollView>
           )}
 
@@ -395,8 +414,8 @@ const renderItem = ({ item }) => {
           <View style={styles.cardFooter}>
             <Text style={styles.cardLabel}>
               {item.hashtags?.length
-                ? item.hashtags.map((t) => t.hashtag).join(", ")
-                : "No hashtags"}
+              ? item.hashtags.map((t) => t.hashtag).join("\n")
+              : "No hashtags"}
             </Text>
             <Text style={styles.cardTime}>
               {new Date(item._createdAt).toLocaleString()}
