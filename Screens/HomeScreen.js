@@ -247,18 +247,15 @@ const HomeScreen = () => {
   // get sanity userId from clerkId
   const fetchSanityUserId = async (clerkId) => {
     const query = `*[_type == "user" && clerkId == $clerkId][0]{ _id }`;
-    const res = await client.fetch(query, { clerkId });
-    return res;
+    return await client.fetch(query, { clerkId });
   };
 
   // toggle bookmark button
   const handleBookmark = async (postId, clerkId) => {
-    console.log("queried this !!");
     if (!clerkId) return;
     try {
       const userDoc = await fetchSanityUserId(clerkId);
       const sanityUserId = userDoc?._id;
-      console.log("userDoc:", userDoc);
       if (!sanityUserId) return;
 
       const alreadySaved = bookmarkedPosts.has(postId);
@@ -289,165 +286,173 @@ const HomeScreen = () => {
       console.error("Error toggling bookmark:", error);
     }
   };
-const renderItem = ({ item }) => {
-  const description = Array.isArray(item.body)
-    ? item.body
+
+  // Render each post item
+  const renderItem = ({ item }) => {
+    const description = Array.isArray(item.body)
+      ? item.body
         .map((block) =>
           Array.isArray(block.children)
             ? block.children.map((child) => child.text).join("")
             : ""
         )
         .join("\n\n")
-    : typeof item.body === "string"
-    ? item.body
-    : "";
+      : typeof item.body === "string"
+        ? item.body
+        : "";
 
-  const firstTag = item.hashtags?.[0]?.hashtag;
-  const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
-  const hasImages = Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
+    const descriptionWords = description.split(/\s+/);
+    const description2 =
+      descriptionWords.length > 20
+        ? descriptionWords.slice(0, 20).join(" ") + "..."
+        : description;
 
-  return (
-    <TouchableOpacity onPress={() => setSelectedPost(item)}>
-      <View
-        style={[
-          styles.cardContainer,
-          hasImages && { paddingBottom:0},
-        ]}
-      >
-        {/* --------card CONTENT ---------- */}
-        <View style={[styles.cardTextContainer]}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
+    const firstTag = item.hashtags?.[0]?.hashtag;
+    const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
+    const hasImages = Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
 
-          <Text numberOfLines={2} style={styles.cardDescription}>
-            {description || "No content available"}
-          </Text>
-
-          {/* ---------- IMAGES ROW ---------- */}
-          {hasImages && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={[{ marginTop: 10 }, { marginBottom: 6 }]}
-              pagingEnabled
-               contentContainerStyle={{ paddingRight: 16 }}
-              decelerationRate="fast"
-            >
-             {item.images.map((img, idx) => {
-  const imageUrl = img?.asset?.url;
-  if (!imageUrl) return null;
-
-  // If there are more than 3 images and we're at index 2, show "+X more" overlay
-  if (idx === 2 && item.images.length > 3) {
     return (
-      <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={{
-            width: 70,
-            height: 70,
-            borderRadius: 10,
-            backgroundColor: "#fff",
-          }}
-          resizeMode="contain"
-        />
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: 70,
-            height: 70,
-            borderRadius: 10,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-            +{item.images.length - 3}
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  // Only show first 3 images (0, 1, 2)
-  if (idx > 2) return null;
-
-  return (
-    <Image
-      key={idx}
-      source={{ uri: imageUrl }}
-      style={{
-        width: 70,
-        height: 70,
-        borderRadius: 10,
-        marginRight: 8,
-        backgroundColor: "#fff",
-      }}
-      resizeMode="contain"
-    />
-  );
-})}
-
-
-            </ScrollView>
-          )}
-
-          {/* ---------- footer ---------- */}
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardLabel}>
-              {item.hashtags?.length
-                ? item.hashtags.map((t) => t.hashtag).join(", ")
-                : "No hashtags"}
-            </Text>
-            <Text style={styles.cardTime}>
-              {new Date(item._createdAt).toLocaleString()}
-            </Text>
-          </View>
-        </View>
-
-        {/* ---------- sidebar---------- */}
+      <TouchableOpacity onPress={() => setSelectedPost(item)}>
         <View
           style={[
-            styles.sideBarContainer,
-            {
-              backgroundColor: sideBarColor,
-              //alignSelf: "stretch", 
-              justifyContent: "space-around",
-            },
+            styles.cardContainer,
+            hasImages && { paddingBottom: 0 },
           ]}
         >
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => handleBookmark(item._id, user?.id)}
-          >
-            <Icon
-              name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"}
-              size={20}
-              color="#333"
-            />
-          </TouchableOpacity>
+          {/* --------card CONTENT ---------- */}
+          <View style={[styles.cardTextContainer]}>
+            <Text style={styles.cardTitle}>{item.title.length > 100 ? item.title.slice(0, 100) + "..." : item.title}</Text>
 
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() =>
-              Linking.openURL(
-                "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
-              )
-            }
-          >
-            <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-          </TouchableOpacity>
+            <Text numberOfLines={2} style={styles.cardDescription}>
+              {description2 || "No content available"}
+            </Text>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => handleShare(item)}>
-            <Icon name="share-social-outline" size={20} color="#333" />
-          </TouchableOpacity>
+            {/* ---------- IMAGES ROW ---------- */}
+            {hasImages && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={[{ marginTop: 10 }, { marginBottom: 6 }]}
+                pagingEnabled
+                contentContainerStyle={{ paddingRight: 16 }}
+                decelerationRate="fast"
+              >
+                {item.images.map((img, idx) => {
+                  const imageUrl = img?.asset?.url;
+                  if (!imageUrl) return null;
+
+                  // If there are more than 3 images and we're at index 2, show "+X more" overlay
+                  if (idx === 2 && item.images.length > 3) {
+                    return (
+                      <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "#fff",
+                          }}
+                          resizeMode="contain"
+                        />
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "rgba(0,0,0,0.5)",
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                            +{item.images.length - 3}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // Only show first 3 images (0, 1, 2)
+                  if (idx > 2) return null;
+
+                  return (
+                    <Image
+                      key={idx}
+                      source={{ uri: imageUrl }}
+                      style={{
+                        width: 70,
+                        height: 70,
+                        borderRadius: 10,
+                        marginRight: 8,
+                        backgroundColor: "#fff",
+                      }}
+                      resizeMode="contain"
+                    />
+                  );
+                })}
+
+
+              </ScrollView>
+            )}
+
+            {/* ---------- footer ---------- */}
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardLabel}>
+                {item.hashtags?.length
+                  ? item.hashtags.map((t) => t.hashtag).join(", ")
+                  : "No hashtags"}
+              </Text>
+              <Text style={styles.cardTime}>
+                {new Date(item._createdAt).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+
+          {/* ---------- sidebar---------- */}
+          <View
+            style={[
+              styles.sideBarContainer,
+              {
+                backgroundColor: sideBarColor,
+                //alignSelf: "stretch", 
+                justifyContent: "space-around",
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => handleBookmark(item._id, user?.id)}
+            >
+              <Icon
+                name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color="#333"
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() =>
+                Linking.openURL(
+                  "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                )
+              }
+            >
+              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconButton} onPress={() => handleShare(item)}>
+              <Icon name="share-social-outline" size={20} color="#333" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
-};
+      </TouchableOpacity>
+    );
+  };
 
 
   // Filter by search and hashtag
@@ -468,185 +473,185 @@ const renderItem = ({ item }) => {
   const allHashtags = Array.from(
     new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
-return (
-  <View style={styles.container}>
-    {/* Header */}
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-      <View style={styles.headerRightIcons}>
-        <TouchableOpacity
-          onPress={() => setSearchVisible(!searchVisible)}
-          style={styles.iconButton}
-        >
-          <Icon name="search-outline" size={26} color="#333" />
-        </TouchableOpacity>
-        <NotificationButton />
-      </View>
-    </View>
-
-    {/* Search bar */}
-    {searchVisible && (
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search posts..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchBox}
-        />
-        {searchQuery.length > 0 && (
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
+        <View style={styles.headerRightIcons}>
           <TouchableOpacity
-            onPress={() => setSearchQuery("")}
-            style={styles.clearButton}
+            onPress={() => setSearchVisible(!searchVisible)}
+            style={styles.iconButton}
           >
-            <Icon name="close" size={22} color="#777" />
+            <Icon name="search-outline" size={26} color="#333" />
           </TouchableOpacity>
-        )}
+          <NotificationButton />
+        </View>
       </View>
-    )}
 
-    {/* Loading state */}
-    {isLoading && visiblePosts.length === 0 ? (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#333" />
-      </View>
-    ) : (
-      <Animated.FlatList
-        data={postsToRender}
-        renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        onEndReachedThreshold={0.5}
-        onEndReached={
-          !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
-        }
-        ListFooterComponent={
-          !searchQuery && selectedHashtag === "All" && isLoading ? (
-            <View style={styles.loadingFooter}>
-              <ActivityIndicator size="small" color="#333" />
-              <Text>Loading more posts...</Text>
-            </View>
-          ) : null
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#ff6b6b" // iOS spinner color
-            colors={["#ff6b6b", "#feca57", "#1dd1a1"]} // Android spinner colors
-            progressBackgroundColor="#fff"
+      {/* Search bar */}
+      {searchVisible && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search posts..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchBox}
           />
-        }
-        scrollEventThrottle={16}
-      />
-    )}
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={styles.clearButton}
+            >
+              <Icon name="close" size={22} color="#777" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
-    {/* Floating Hashtag Button */}
-    <FloatingButton
-      hashtags={allHashtags}
-      selectedHashtag={selectedHashtag}
-      onSelectHashtag={setSelectedHashtag}
-    />
-
-    {/* Post Modal */}
-    <Modal
-      visible={!!selectedPost}
-      animationType="slide"
-      transparent
-      onRequestClose={() => setSelectedPost(null)}
-    >
-      <View style={styles.modalOverlay}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={() => setSelectedPost(null)}
+      {/* Loading state */}
+      {isLoading && visiblePosts.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#333" />
+        </View>
+      ) : (
+        <Animated.FlatList
+          data={postsToRender}
+          renderItem={renderItem}
+          keyExtractor={(item) => item._id}
+          onEndReachedThreshold={0.5}
+          onEndReached={
+            !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
+          }
+          ListFooterComponent={
+            !searchQuery && selectedHashtag === "All" && isLoading ? (
+              <View style={styles.loadingFooter}>
+                <ActivityIndicator size="small" color="#333" />
+                <Text>Loading more posts...</Text>
+              </View>
+            ) : null
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#ff6b6b" // iOS spinner color
+              colors={["#ff6b6b", "#feca57", "#1dd1a1"]} // Android spinner colors
+              progressBackgroundColor="#fff"
+            />
+          }
+          scrollEventThrottle={16}
         />
-        <View style={styles.modalContent}>
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 30 }}
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-          >
-            <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+      )}
 
-            {/* Images Carousel */}
-            {selectedPost?.images?.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                pagingEnabled
-                decelerationRate="fast"
-                snapToInterval={260}
-                nestedScrollEnabled
-                style={{ marginVertical: 10 }}
-              >
-                {selectedPost.images.map((img, idx) => (
-                  <Image
-                    key={idx}
-                    source={{ uri: img.asset.url }}
-                    style={{
-                      width: 250,
-                      aspectRatio: 1,
-                      borderRadius: 10,
-                      marginRight: 10,
-                    }}
-                    resizeMode="contain"
-                  />
-                ))}
-              </ScrollView>
-            )}
+      {/* Floating Hashtag Button */}
+      <FloatingButton
+        hashtags={allHashtags}
+        selectedHashtag={selectedHashtag}
+        onSelectHashtag={setSelectedHashtag}
+      />
 
-            {/* Post Content */}
-            <Text style={styles.modalDescription}>
-              {Array.isArray(selectedPost?.body)
-                ? selectedPost.body
+      {/* Post Modal */}
+      <Modal
+        visible={!!selectedPost}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedPost(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedPost(null)}
+          />
+          <View style={styles.modalContent}>
+            <ScrollView
+              contentContainerStyle={{ paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+
+              {/* Images Carousel */}
+              {selectedPost?.images?.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  pagingEnabled
+                  decelerationRate="fast"
+                  snapToInterval={260}
+                  nestedScrollEnabled
+                  style={{ marginVertical: 10 }}
+                >
+                  {selectedPost.images.map((img, idx) => (
+                    <Image
+                      key={idx}
+                      source={{ uri: img.asset.url }}
+                      style={{
+                        width: 250,
+                        aspectRatio: 1,
+                        borderRadius: 10,
+                        marginRight: 10,
+                      }}
+                      resizeMode="contain"
+                    />
+                  ))}
+                </ScrollView>
+              )}
+
+              {/* Post Content */}
+              <Text style={styles.modalDescription}>
+                {Array.isArray(selectedPost?.body)
+                  ? selectedPost.body
                     .map((block) =>
                       Array.isArray(block.children)
                         ? block.children.map((child) => child.text).join("")
                         : ""
                     )
                     .join("\n\n")
-                : typeof selectedPost?.body === "string"
-                ? selectedPost.body
-                : "No content available"}
-            </Text>
+                  : typeof selectedPost?.body === "string"
+                    ? selectedPost.body
+                    : "No content available"}
+              </Text>
 
-            {/* Hashtags */}
-            <Text style={styles.modalHashtags}>
-              {selectedPost?.hashtags?.length
-                ? selectedPost.hashtags
+              {/* Hashtags */}
+              <Text style={styles.modalHashtags}>
+                {selectedPost?.hashtags?.length
+                  ? selectedPost.hashtags
                     .map((tag) => `${tag.hashtag}`)
                     .join("\n")
-                : "No hashtags"}
-            </Text>
+                  : "No hashtags"}
+              </Text>
 
-            {/* Timestamp */}
-            <Text style={styles.modalTime}>
-              {new Date(selectedPost?._createdAt).toLocaleString()}
-            </Text>
-          </ScrollView>
+              {/* Timestamp */}
+              <Text style={styles.modalTime}>
+                {new Date(selectedPost?._createdAt).toLocaleString()}
+              </Text>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
 
-    {/* Optional Lottie Animation for pull-to-refresh */}
-    {refreshing && (
-      <View
-        style={{
-          position: "absolute",
-          top: -60,
-          left: 0,
-          right: 0,
-          alignItems: "center",
-        }}
-      >
-        <LottieView
-          source={require("../assets/refresh.json")} // your Lottie JSON
-          autoPlay
-          loop
-          style={{ width: 60, height: 60 }}
-        />
-      </View>
-    )}
-  </View>
-);
+      {/* Optional Lottie Animation for pull-to-refresh */}
+      {refreshing && (
+        <View
+          style={{
+            position: "absolute",
+            top: -60,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+          }}
+        >
+          <LottieView
+            source={require("../assets/refresh.json")} // your Lottie JSON
+            autoPlay
+            loop
+            style={{ width: 60, height: 60 }}
+          />
+        </View>
+      )}
+    </View>
+  );
 
 };
 
