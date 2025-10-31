@@ -1,5 +1,7 @@
 // HomeScreen.js
 import React, { useEffect, useRef, useState } from "react";
+import ImageViewing from "react-native-image-viewing";
+
 import {
   View,
   Text,
@@ -35,6 +37,7 @@ import LottieView from "lottie-react-native"; // optional
 import * as Notifications from 'expo-notifications';
 import { Dimensions } from 'react-native';
 
+
 const { width } = Dimensions.get("window");
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
@@ -55,6 +58,8 @@ const HomeScreen = () => {
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
   const postsPerPage = 5;
   const [refreshing, setRefreshing] = useState(false);
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Clerk auth user
@@ -344,7 +349,7 @@ const HomeScreen = () => {
                   // If there are more than 3 images and we're at index 2, show "+X more" overlay
                   if (idx === 2 && item.images.length > 3) {
                     return (
-                      <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                      <View key={idx} style={{ position: "relative", marginRight: 1 }}>
                         <Image
                           source={{ uri: imageUrl }}
                           style={{
@@ -380,18 +385,31 @@ const HomeScreen = () => {
                   if (idx > 2) return null;
 
                   return (
-                    <Image
-                      key={idx}
-                      source={{ uri: imageUrl }}
-                      style={{
-                        width: 70,
-                        height: 70,
-                        borderRadius: 10,
-                        marginRight: 8,
-                        backgroundColor: "#fff",
-                      }}
-                      resizeMode="contain"
-                    />
+                    <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "rgba(240, 240, 240, 0.8)",
+                          }}
+                          resizeMode="contain"
+                        />
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                        </View>
+                      </View>
                   );
                 })}
 
@@ -582,19 +600,31 @@ const HomeScreen = () => {
                   nestedScrollEnabled
                   style={{ marginVertical: 10 }}
                 >
-                  {selectedPost.images.map((img, idx) => (
-                    <Image
-                      key={idx}
-                      source={{ uri: img.asset.url }}
-                      style={{
-                        width: 250,
-                        aspectRatio: 1,
-                        borderRadius: 10,
-                        marginRight: 10,
-                      }}
-                      resizeMode="contain"
-                    />
-                  ))}
+                  {selectedPost.images.map((img, idx) => {
+                    const imageUrl = img?.asset?.url;
+                    if (!imageUrl) return null;
+
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => {
+                          setImageViewerIndex(idx);
+                          setIsImageViewerVisible(true);
+                        }}
+                      >
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{
+                            width: 250,
+                            aspectRatio: 1,
+                            borderRadius: 10,
+                            marginRight: 10,
+                          }}
+                          resizeMode="contain"
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               )}
 
@@ -649,6 +679,16 @@ const HomeScreen = () => {
             style={{ width: 60, height: 60 }}
           />
         </View>
+      )}
+
+      {selectedPost?.images?.length > 0 && (
+        <ImageViewing
+          images={selectedPost.images.map(img => ({ uri: img.asset.url }))}
+          imageIndex={imageViewerIndex}
+          visible={isImageViewerVisible}
+          onRequestClose={() => setIsImageViewerVisible(false)}
+          presentationStyle="overFullScreen"
+        />
       )}
     </View>
   );

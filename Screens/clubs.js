@@ -19,7 +19,8 @@ const Clubs = () => {
   const [selectedClub, setSelectedClub] = useState(null);
 
   useEffect(() => {
-    const fetchClubs = async () => {
+  const fetchClubs = async () => {
+    try {
       const data = await client.fetch(
         `*[_type == "clubs"]{
           _id,
@@ -35,9 +36,21 @@ const Clubs = () => {
         }`
       );
       setClubs(data);
-    };
-    fetchClubs();
-  }, []);
+    } catch (err) {
+      console.error("Error fetching clubs:", err);
+    }
+  };
+
+  // Initial fetch
+  fetchClubs();
+
+  // Re-fetch every 3 seconds (3000 ms)
+  const interval = setInterval(fetchClubs, 3000);
+
+  // Cleanup when component unmounts
+  return () => clearInterval(interval);
+}, []);
+
 
   const openLink = (url) => {
     if (url) Linking.openURL(url);

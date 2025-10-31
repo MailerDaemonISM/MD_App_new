@@ -155,7 +155,46 @@ searchBox: {
 },
 clearButton: {
   paddingLeft: 6,
-}
+},
+modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    borderRadius: 10,
+    padding: 15,
+    maxHeight: "85%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  modalDescription: {
+    marginTop: 10,
+    fontSize: 15,
+  },
+  modalHashtags: {
+    marginTop: 10,
+    color: "#666",
+  },
+  modalTime: {
+    marginTop: 5,
+    color: "#aaa",
+    fontSize: 12,
+  },
+  fullImageContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullImage: {
+    width: "100%",
+    height: "100%",
+  },
 });
 
 export default styles;
