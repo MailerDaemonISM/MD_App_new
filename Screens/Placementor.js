@@ -279,12 +279,24 @@ const PlacementList = () => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Search placements..."
-        value={searchText}
-        onChangeText={handleSearch}
-      />
+      <View style={styles.searchBarContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search placements..."
+          value={searchText}
+          onChangeText={handleSearch}
+          placeholderTextColor="#888"
+        />
+        {searchText.length > 0 && (
+          <TouchableOpacity onPress={() => {
+            setSearchText("");
+            setFilteredPlacements(placements);
+          }}
+            style={styles.clearButton}>
+            <Icon name="close" size={22} color="#777" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Dropdowns for selecting year and branch */}
       <View style={styles.filterContainer}>
@@ -438,6 +450,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
   },
+  searchBarContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#fff",
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: "#ddd",
+  margin: 10,
+  paddingHorizontal: 10,
+},
+
+searchInput: {
+  flex: 1,
+  height: 40,
+  fontSize: 16,
+  color: "#333",
+},
+
+clearButton: {
+  padding: 6,
+},
 });
 
 export default PlacementList;
