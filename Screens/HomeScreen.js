@@ -1,6 +1,7 @@
 // HomeScreen.js
 import React, { useEffect, useRef, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   View,
@@ -33,7 +34,6 @@ import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RefreshControl } from "react-native-gesture-handler";
 import { Animated } from "react-native";
-import LottieView from "lottie-react-native"; // optional
 import * as Notifications from 'expo-notifications';
 import { Dimensions } from 'react-native';
 
@@ -61,31 +61,31 @@ const HomeScreen = () => {
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
-  
+
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
   useEffect(() => {
-  const syncUserWithSanity = async () => {
-    if (!isSignedIn || !user) return;
+    const syncUserWithSanity = async () => {
+      if (!isSignedIn || !user) return;
 
-    const userData = {
-      clerkId: user.id,
-      email: user.primaryEmailAddress?.emailAddress || "",
-      name: user.fullName || "",
-      username: user.username || user.firstName || "user",
-      image: user.imageUrl || "",
+      const userData = {
+        clerkId: user.id,
+        email: user.primaryEmailAddress?.emailAddress || "",
+        name: user.fullName || "",
+        username: user.username || user.firstName || "user",
+        image: user.imageUrl || "",
+      };
+
+      try {
+        await setUserIfNotExists(userData);
+      } catch (error) {
+        console.error("Error syncing user with Sanity:", error.message);
+      }
     };
 
-    try {
-      await setUserIfNotExists(userData);
-    } catch (error) {
-      console.error("Error syncing user with Sanity:", error.message);
-    }
-  };
-
-  syncUserWithSanity();
-}, [isSignedIn, user]);
+    syncUserWithSanity();
+  }, [isSignedIn, user]);
 
   // Fetch user bookmarks
   useFocusEffect(
@@ -408,30 +408,30 @@ const HomeScreen = () => {
 
                   return (
                     <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "rgba(240, 240, 240, 0.8)",
-                          }}
-                          resizeMode="contain"
-                        />
-                        <View
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                        </View>
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={{
+                          width: 70,
+                          height: 70,
+                          borderRadius: 10,
+                          backgroundColor: "rgba(240, 240, 240, 0.8)",
+                        }}
+                        resizeMode="contain"
+                      />
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: 70,
+                          height: 70,
+                          borderRadius: 10,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
                       </View>
+                    </View>
                   );
                 })}
 
@@ -694,12 +694,8 @@ const HomeScreen = () => {
             alignItems: "center",
           }}
         >
-          <LottieView
-            source={require("../assets/refresh.json")} // your Lottie JSON
-            autoPlay
-            loop
-            style={{ width: 60, height: 60 }}
-          />
+
+          <Ionicons name="refresh" size={40} color="#4A90E2" />
         </View>
       )}
 
