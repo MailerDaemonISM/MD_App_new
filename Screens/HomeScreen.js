@@ -1,6 +1,7 @@
 // HomeScreen.js
 import React, { useEffect, useRef, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   View,
@@ -33,7 +34,6 @@ import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RefreshControl } from "react-native-gesture-handler";
 import { Animated } from "react-native";
-import LottieView from "lottie-react-native"; // optional
 import * as Notifications from 'expo-notifications';
 import { Dimensions } from 'react-native';
 
@@ -683,7 +683,6 @@ const HomeScreen = () => {
         </View>
       </Modal>
 
-      {/* Optional Lottie Animation for pull-to-refresh */}
       {refreshing && (
         <View
           style={{
@@ -694,12 +693,7 @@ const HomeScreen = () => {
             alignItems: "center",
           }}
         >
-          <LottieView
-            source={require("../assets/refresh.json")} // your Lottie JSON
-            autoPlay
-            loop
-            style={{ width: 60, height: 60 }}
-          />
+          <Ionicons name="refresh" size={40} color="#4A90E2" />
         </View>
       )}
 

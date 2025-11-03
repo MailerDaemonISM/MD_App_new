@@ -4,7 +4,8 @@
     "slug": "md-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "owner": "mailer-daemon", 
+    "icon": "./assets/md_logo.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
