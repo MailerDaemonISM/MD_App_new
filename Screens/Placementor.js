@@ -20,7 +20,7 @@ import { useUser } from "@clerk/clerk-expo";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react/cjs/react.development";
+import { useCallback } from "react";
 
 let url = "";
 // Function to fetch placement data based on the selected year
