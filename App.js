@@ -23,19 +23,23 @@ import { tokenCache } from "./utils/cache";
 import CustomDrawerContent from "./Screens/CustomDrawer";
 import HomeScreen from "./Screens/HomeScreen";
 
+import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
+import { ActivityIndicator, View } from "react-native";
+
+
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
 
 // Drawer navigator for signed-in users
 function DrawerNavigator() {
   return (
-    <Drawer.Navigator 
+    <Drawer.Navigator
       drawerContent={CustomDrawerContent}
       screenOptions={{ headerShown: true }}
     >
-      <Drawer.Screen 
-        name="HomeScreen" 
-        component={HomeScreen} 
+      <Drawer.Screen
+        name="HomeScreen"
+        component={HomeScreen}
         options={{ title: "Posts" }}
       />
       <Drawer.Screen name="MDHashtags" component={MDHashtags} />
@@ -68,11 +72,24 @@ export default function App() {
       tokenCache={tokenCache}
     >
       <NavigationContainer>
+
+        <ClerkLoading>
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#fff",
+            }}
+          >
+            <ActivityIndicator size="large" color="#007bff" />
+          </View>
+        </ClerkLoading>
+
         <SignedIn>
           <DrawerNavigator />
         </SignedIn>
         <SignedOut>
-          {console.log("User is signed out")}
           <AuthStack />
         </SignedOut>
       </NavigationContainer>

@@ -1,12 +1,11 @@
 // HomeScreen.js
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
 
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
@@ -16,7 +15,6 @@ import {
   Pressable,
   Image,
   StyleSheet,
-  AppState,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -29,16 +27,12 @@ import { setUserIfNotExists } from "../api/user";
 import NotificationButton from "../components/notification";
 import { Linking } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { useCallback } from "react/cjs/react.development";
+import React, { useCallback } from "react";
 import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RefreshControl } from "react-native-gesture-handler";
+import { RefreshControl } from "react-native";
 import { Animated } from "react-native";
 import * as Notifications from 'expo-notifications';
-import { Dimensions } from 'react-native';
-
-
-const { width } = Dimensions.get("window");
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -46,7 +40,6 @@ const hashtagColorMap = hashtagData.reduce((map, tag) => {
 }, {});
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
   const [allPosts, setAllPosts] = useState([]);
   const [visiblePosts, setVisiblePosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +53,6 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
-  const scrollY = useRef(new Animated.Value(0)).current;
   
 
   // Clerk auth user

@@ -37,11 +37,10 @@
     "plugins": [
       "expo-image-picker",
       "expo-secure-store",
-      "expo-dev-client",
       [
         "expo-notifications",
         {
-          "icon": "./assets/md.jpg",
+          "icon": "./assets/md_logo.png",
           "color": "#FF6600",
           "sounds": [],
           "mode": "production"

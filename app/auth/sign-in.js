@@ -76,7 +76,7 @@ export default function SignInScreen() {
           <ActivityIndicator color="#fff" />
         ) : (
           <><Text style={styles.googleButtonText}>Continue with Google</Text>
-              //use your institute mail id 
+              {/* //use your institute mail id  */}
               <Text style={styles.instituteNote}>Use your Institute Email ID</Text></>
 
         )}

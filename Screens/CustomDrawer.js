@@ -54,7 +54,6 @@ const CustomDrawerContent = (props) => {
               source={require("../assets/Map.jpg")}
               label="Campus Map"
               onPress={() => props.navigation.navigate("map")}
-
             />
             <NavItem
               source={require("../assets/clubs.png")}

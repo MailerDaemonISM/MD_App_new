@@ -50,20 +50,19 @@ const fetchPlacementData = async (year) => {
 };
 
 // Share button handler
-  const onShare = async (post) => {
-    try {
-      await Share.share({
-        title: post.title,
-        message:
-          `${post.title}\n\n${
-            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
-            "No content available"
-          }\n\nShared via Mailer Daemon`,
-      });
-    } catch (error) {
-      console.error("Error sharing post:", error);
-    }
-  };
+const onShare = async (post) => {
+  try {
+    await Share.share({
+      title: post.title,
+      message:
+        `${post.title}\n\n${post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
+        "No content available"
+        }\n\nShared via Mailer Daemon`,
+    });
+  } catch (error) {
+    console.error("Error sharing post:", error);
+  }
+};
 
 const getUserSpecificKey = (userId) => {
   return `placementBookmarks_${userId}`;
@@ -98,12 +97,12 @@ const PlacementList = () => {
   }, [selectedYear]); // Refetch data whenever the selected year changes
 
   useFocusEffect(
-  useCallback(() => {
-    if (user) {
-      loadBookmarks();
-    }
-  }, [user])
-);
+    useCallback(() => {
+      if (user) {
+        loadBookmarks();
+      }
+    }, [user])
+  );
 
   const loadBookmarks = async () => {
     if (!user) return;
@@ -128,17 +127,17 @@ const PlacementList = () => {
         ...item,
         id: item._id || `placement_${item.company_name}_${item.year}` // Create unique ID if none exists
       };
-      
-      const isBookmarked = bookmarkedPosts.some(post => 
-        post.id === placementItem.id || 
+
+      const isBookmarked = bookmarkedPosts.some(post =>
+        post.id === placementItem.id ||
         post._id === placementItem._id
       );
-      
+
       let updatedBookmarks;
 
       if (isBookmarked) {
-        updatedBookmarks = bookmarkedPosts.filter(post => 
-          post.id !== placementItem.id && 
+        updatedBookmarks = bookmarkedPosts.filter(post =>
+          post.id !== placementItem.id &&
           post._id !== placementItem._id
         );
       } else {
@@ -175,28 +174,28 @@ const PlacementList = () => {
       const name = item.name ? item.name.toLowerCase() : "";
       const companyName = item.company_name ? item.company_name.toLowerCase() : "";
       const role = item.role ? item.role.toLowerCase() : "";
-  
+
       const matchesSearch =
         name.includes(text.toLowerCase()) ||
         companyName.includes(text.toLowerCase()) ||
         role.includes(text.toLowerCase());
-  
+
 
       const eligibleBranches = item.eligible_branch
         ? item.eligible_branch.toLowerCase().split(",")
         : [];
-  
+
       const isBranchEligible =
         branch === "All" ||
         eligibleBranches.includes(branch.toLowerCase()) ||
         eligibleBranches.includes("open to all");
-  
+
       return matchesSearch && isBranchEligible;
     });
-  
+
     setFilteredPlacements(filteredData);
   };
-  
+
 
   const navigateToDetails = (company_name, year, url) => {
     navigation.navigate("Details", { company_name, year, url });
@@ -232,27 +231,27 @@ const PlacementList = () => {
         <Text>Year : {item.year}</Text>
       </View>
       <View style={styles.iconsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.iconButton}
           onPress={() => toggleBookmark(item)}
         >
-          <Icon 
-            name={bookmarkedPosts.some(post => 
+          <Icon
+            name={bookmarkedPosts.some(post =>
               post.id === (item._id || `placement_${item.company_name}_${item.year}`) ||
               post._id === item._id
-            ) ? "bookmark" : "bookmark-outline"} 
-            size={20} 
-            color="#333" 
+            ) ? "bookmark" : "bookmark-outline"}
+            size={20}
+            color="#333"
           />
         </TouchableOpacity>
-              <TouchableOpacity
+        <TouchableOpacity
           style={styles.iconButton}
           onPress={() =>
             Linking.openURL(
               "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
             )
           }
-              > 
+        >
           <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
@@ -338,7 +337,11 @@ const PlacementList = () => {
       {filteredPlacements.length > 0 ? (
         <FlatList
           data={filteredPlacements}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) =>
+            item._id
+              ? item._id.toString()
+              : `${item.company_name || "unknown"}_${item.year || "NA"}_${index}`
+          }
           renderItem={renderCard}
         />
       ) : (
@@ -375,33 +378,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   card: {
-  flexDirection: "row",
-  backgroundColor: "#fff",
-  borderRadius: 12,
-  marginVertical: 8,
-  marginHorizontal: 10,
-  overflow: "hidden",
-  borderWidth: 1,
-  borderColor: "rgba(0,0,0,0.05)", // light subtle border
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3, // Android shadow
-  alignItems: "center",
-},
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)", // light subtle border
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
+    alignItems: "center",
+  },
 
- companyLogo: {
-  width: 100, // slightly smaller to match thin style
-  height: 100,
-  resizeMode: "contain",
-  marginLeft: 8,
-},
+  companyLogo: {
+    width: 100, // slightly smaller to match thin style
+    height: 100,
+    resizeMode: "contain",
+    marginLeft: 8,
+  },
   cardContent: {
-  flex: 1,
-  marginLeft: 12,
-  paddingVertical: 8,
-},
+    flex: 1,
+    marginLeft: 12,
+    paddingVertical: 8,
+  },
   title: {
     fontSize: 16,
     fontWeight: "bold",
@@ -414,14 +417,14 @@ const styles = StyleSheet.create({
   cardcontainer: {
     padding: 20,
   },
- iconsContainer: {
-  flexDirection: "column",
-  backgroundColor: "#98DDFF",
-  borderTopRightRadius: 12,
-  borderBottomRightRadius: 12,
-  padding: 5,
-  justifyContent: "center",
-},
+  iconsContainer: {
+    flexDirection: "column",
+    backgroundColor: "#98DDFF",
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    padding: 5,
+    justifyContent: "center",
+  },
   iconButton: {
     padding: 10,
     alignItems: "center",
@@ -451,26 +454,26 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   searchBarContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  backgroundColor: "#fff",
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: "#ddd",
-  margin: 10,
-  paddingHorizontal: 10,
-},
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    margin: 10,
+    paddingHorizontal: 10,
+  },
 
-searchInput: {
-  flex: 1,
-  height: 40,
-  fontSize: 16,
-  color: "#333",
-},
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: "#333",
+  },
 
-clearButton: {
-  padding: 6,
-},
+  clearButton: {
+    padding: 6,
+  },
 });
 
 export default PlacementList;
