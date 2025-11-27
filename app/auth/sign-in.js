@@ -139,6 +139,7 @@ export default function SignInScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.WHITE} />
             ) : (
+              
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             )}
           </TouchableOpacity>
