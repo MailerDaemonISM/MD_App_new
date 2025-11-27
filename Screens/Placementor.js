@@ -25,7 +25,9 @@ import { useCallback } from "react";
 let url = "";
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
-  if (year === "2024") {
+  if(year === "2025")
+    url=  "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202025%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  else if (year === "2024") {
     url =
       "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   } else if (year === "2023") {
@@ -73,7 +75,7 @@ const PlacementList = () => {
   const [filteredPlacements, setFilteredPlacements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [selectedYear, setSelectedYear] = useState("2024");
+  const [selectedYear, setSelectedYear] = useState("2025");
   const [selectedBranch, setSelectedBranch] = useState("All");
   const { user } = useUser();
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
@@ -304,6 +306,7 @@ const PlacementList = () => {
           style={styles.picker}
           onValueChange={(itemValue) => setSelectedYear(itemValue)}
         >
+          <Picker.Item label="2025" value="2025" />
           <Picker.Item label="2024" value="2024" />
           <Picker.Item label="2023" value="2023" />
           <Picker.Item label="2022" value="2022" />

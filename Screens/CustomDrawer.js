@@ -2,19 +2,12 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Text, Image, View, TouchableOpacity, Linking, StyleSheet } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useUser } from "@clerk/clerk-expo";
+import { Alert } from "react-native";
+
 
 const CustomDrawerContent = (props) => {
   const { signOut } = useAuth();
   const { user } = useUser();
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      // Clerk auto-navigates to SignedOut → AuthStack
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
-  };
 
   const open_institute_web = () => {
     Linking.openURL("https://www.iitism.ac.in/");
@@ -22,6 +15,28 @@ const CustomDrawerContent = (props) => {
   const open_ark_portal = () => {
     Linking.openURL("https://ark.iitism.ac.in/");
   };
+
+  const handleLogout = () => {
+  Alert.alert(
+    "Logout",
+    "Are you sure you want to logout?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (err) {
+            console.error("Logout failed", err);
+          }
+        },
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   return (
     <View style={{ flex: 1 }}>
@@ -126,6 +141,7 @@ const CustomDrawerContent = (props) => {
   );
 };
 
+
 // NavItem subcomponent for reuse
 const NavItem = ({ source, label, onPress }) => (
   <View style={styles.navItemContainer}>
@@ -215,16 +231,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#000",
   },
-  logoutButton: {
-    backgroundColor: "#db4437",
-    paddingVertical: 12,
-    paddingHorizontal: 48,
-    borderRadius: 12,
-    marginTop: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 140,
-  },
+ logoutButton: {
+  backgroundColor: "#db4437",
+  paddingVertical: 12,
+  paddingHorizontal: 48,
+  borderRadius: 12,
+  marginTop: 16,
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 140,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.15,
+  shadowRadius: 6,
+  elevation: 3,
+},
   buttonText: {
     color: "#fff",
     fontSize: 16,

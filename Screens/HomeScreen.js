@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
-
 import {
   View,
   Text,
@@ -15,6 +14,8 @@ import {
   Pressable,
   Image,
   StyleSheet,
+  BackHandler,
+  Alert
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -176,6 +177,32 @@ const HomeScreen = () => {
       clearInterval(intervalId);
     };
   }, []);
+
+  //Backhandle 
+  useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => {
+      // Show only on HomeScreen
+      Alert.alert(
+        "Exit App",
+        "Are you sure you want to exit?",
+        [
+          { text: "Cancel", style: "cancel", onPress: () => null },
+          { text: "YES", onPress: () => BackHandler.exitApp() }
+        ],
+        { cancelable: true }
+      );
+      return true; // Stop default behavior
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+
+    return () => subscription.remove();
+  }, [])
+);
 
 
 

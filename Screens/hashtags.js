@@ -46,7 +46,7 @@ export const hashtags = [
   {
     id: "7",
     title: "#BCDaemon",
-    description: "Satrirical takes on various events happening in the campus are posted under this hashtag.",
+    description: "Satirical takes on various events happening in the campus are posted under this hashtag.",
     color: "#E1B4FF",
     // icon: "happy-outline",
   },
