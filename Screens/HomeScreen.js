@@ -7,38 +7,12 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  TextInput,
-  Modal,
-  ScrollView,
-  Share,
-  Pressable,
-  Image,
-  StyleSheet,
-  BackHandler,
-  Alert
+  Share, // <-- import Share API
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
-import styles from "./HomeScreen.style";
-import { hashtags as hashtagData } from "./hashtags";
-import { useUser } from "@clerk/clerk-expo";
-import { setUserIfNotExists } from "../api/user";
-import NotificationButton from "../components/notification";
-import { Linking } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback } from "react";
-import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RefreshControl } from "react-native";
-import { Animated } from "react-native";
-import * as Notifications from 'expo-notifications';
-
-const hashtagColorMap = hashtagData.reduce((map, tag) => {
-  map[tag.title] = tag.color;
-  return map;
-}, {});
 
 const HomeScreen = () => {
   const [allPosts, setAllPosts] = useState([]);
@@ -121,10 +95,12 @@ const HomeScreen = () => {
       setAllPosts(result);
       setVisiblePosts(result.slice(0, postsPerPage));
 
-      // Check for new posts and notify users
-      const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
-      const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-      await checkAndNotifyNewPosts(result, isToggleOn);
+      if (result.length > 0) {
+        setPosts((prevPosts) => [...prevPosts, ...result]);
+        setCurrentPage((prevPage) => prevPage + 1);
+      } else {
+        setHasMorePosts(false);
+      }
     } catch (error) {
       console.error("❌ Error fetching posts:", error);
     } finally {
@@ -132,387 +108,61 @@ const HomeScreen = () => {
     }
   };
 
-  // Background notification check function
-  const checkPostsInBackground = async () => {
+  // Share button handler
+  const onShare = async (post) => {
     try {
-      const query = `*[_type == "post"] | order(_createdAt desc) {
-        _id,
-        title,
-        body,
-        images[]{asset->{url}},
-        _createdAt,
-        hashtags[]->{ _id, hashtag }
-      }`;
-      const result = await client.fetch(query);
-
-      // Get toggle state
-      const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
-      const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-
-      // Check for new posts and notify
-      const hasNewPost = await checkAndNotifyNewPosts(result, isToggleOn);
-
-      // If there's a new post, update the UI when app comes back to focus
-      if (hasNewPost) {
-        setAllPosts(result);
-        setVisiblePosts(result.slice(0, postsPerPage));
-        setCurrentPage(1);
-      }
-    } catch (error) {
-      console.error("❌ Error checking for new posts in background:", error);
-    }
-  };
-
-  useEffect(() => {
-    // Initial fetch
-    fetchAllPosts();
-
-    // Set up periodic checking for new posts every 3 seconds
-    const intervalId = setInterval(async () => {
-      await checkPostsInBackground();
-    }, 3000); // Check every 3 seconds
-
-    // Cleanup on unmount
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
-
-  //Backhandle 
-  useFocusEffect(
-  useCallback(() => {
-    const onBackPress = () => {
-      // Show only on HomeScreen
-      Alert.alert(
-        "Exit App",
-        "Are you sure you want to exit?",
-        [
-          { text: "Cancel", style: "cancel", onPress: () => null },
-          { text: "YES", onPress: () => BackHandler.exitApp() }
-        ],
-        { cancelable: true }
-      );
-      return true; // Stop default behavior
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      onBackPress
-    );
-
-    return () => subscription.remove();
-  }, [])
-);
-
-
-
-  // Handle notification press to navigate to post
-  useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const postId = response.notification.request.content.data.postId;
-
-      if (postId) {
-        // Find the post in allPosts
-        const post = allPosts.find(p => p._id === postId);
-
-        if (post) {
-          // Set the selected post to open the modal
-          setSelectedPost(post);
-          console.log('Navigating to post:', postId);
-        }
-      }
-    });
-
-    return () => subscription.remove();
-  }, [allPosts]);
-
-  // Pull-to-refresh handler with limit
-  const onRefresh = useCallback(async () => {
-    try {
-      const today = new Date().toDateString();
-      const storedData = await AsyncStorage.getItem('@refresh_limit');
-      let currentCount = 0;
-
-      if (storedData) {
-        const { date, count } = JSON.parse(storedData);
-        currentCount = date === today ? count : 0;
-      }
-
-      // Check if limit reached
-      if (currentCount >= 5) {
-        return;
-      }
-
-      // Increment refresh count
-      const newCount = currentCount + 1;
-      await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: newCount }));
-
-      setRefreshing(true);
-      await fetchAllPosts();
-      setRefreshing(false);
-    } catch (error) {
-      console.error("Error during refresh:", error);
-      setRefreshing(false);
-    }
-  }, []);
-
-  // Load more posts locally
-  const loadMorePosts = () => {
-    const nextPage = currentPage + 1;
-    const start = (nextPage - 1) * postsPerPage;
-    const end = nextPage * postsPerPage;
-    const newPosts = allPosts.slice(start, end);
-
-    if (newPosts.length > 0) {
-      setVisiblePosts((prev) => [...prev, ...newPosts]);
-      setCurrentPage(nextPage);
-    }
-  };
-
-  // share
-  const handleShare = async (post) => {
-    try {
-      const message = `${post.title}\n\n${Array.isArray(post.body)
-        ? post.body
-          .map((block) =>
-            Array.isArray(block.children)
-              ? block.children.map((child) => child.text).join("")
-              : ""
-          )
-          .join("\n\n")
-        : typeof post.body === "string"
-          ? post.body
-          : ""
-        }`;
-      await Share.share({ message });
+      await Share.share({
+        title: post.title,
+        message:
+          `${post.title}\n\n${
+            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
+            "No content available"
+          }\n\nShared via Mailer Daemon`,
+      });
     } catch (error) {
       console.error("Error sharing post:", error);
     }
   };
 
-  // get sanity userId from clerkId
-  const fetchSanityUserId = async (clerkId) => {
-    const query = `*[_type == "user" && clerkId == $clerkId][0]{ _id }`;
-    return await client.fetch(query, { clerkId });
-  };
-
-  // toggle bookmark button
-  const handleBookmark = async (postId, clerkId) => {
-    if (!clerkId) return;
-    try {
-      const userDoc = await fetchSanityUserId(clerkId);
-      const sanityUserId = userDoc?._id;
-      if (!sanityUserId) return;
-
-      const alreadySaved = bookmarkedPosts.has(postId);
-
-      // Optimistic UI update
-      setBookmarkedPosts((prev) => {
-        const updated = new Set(prev);
-        if (alreadySaved) updated.delete(postId);
-        else updated.add(postId);
-        return updated;
-      });
-
-      if (alreadySaved) {
-        // Remove bookmark in Sanity
-        await client
-          .patch(sanityUserId)
-          .unset([`saved_post[_ref=="${postId}"]`])
-          .commit();
-      } else {
-        // Add bookmark in Sanity
-        await client
-          .patch(sanityUserId)
-          .setIfMissing({ saved_post: [] })
-          .append("saved_post", [{ _type: "reference", _ref: postId }])
-          .commit();
-      }
-    } catch (error) {
-      console.error("Error toggling bookmark:", error);
-    }
-  };
-
-  // Render each post item
-  const renderItem = ({ item }) => {
-    const description = Array.isArray(item.body)
-      ? item.body
-        .map((block) =>
-          Array.isArray(block.children)
-            ? block.children.map((child) => child.text).join("")
-            : ""
-        )
-        .join("\n\n")
-      : typeof item.body === "string"
-        ? item.body
-        : "";
-
-    const descriptionWords = description.split(/\s+/);
-    const description2 =
-      descriptionWords.length > 20
-        ? descriptionWords.slice(0, 20).join(" ") + "..."
-        : description;
-
-    const firstTag = item.hashtags?.[0]?.hashtag;
-    const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
-    const hasImages = Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
-
-    return (
-      <TouchableOpacity onPress={() => setSelectedPost(item)}>
-        <View
-          style={[
-            styles.cardContainer,
-            hasImages && { paddingBottom: 0 },
-          ]}
+  const renderItem = ({ item }) => (
+    <View style={styles.cardContainer}>
+      {/* Card Left Side */}
+      <View style={styles.cardTextContainer}>
+        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardCategory}>Category</Text>
+        <Text
+          style={styles.cardDescription}
+          numberOfLines={3}
+          ellipsizeMode="tail"
         >
-          {/* --------card CONTENT ---------- */}
-          <View style={[styles.cardTextContainer]}>
-            <Text style={styles.cardTitle}>{item.title.length > 100 ? item.title.slice(0, 100) + "..." : item.title}</Text>
-
-            <Text numberOfLines={2} style={styles.cardDescription}>
-              {description2 || "No content available"}
-            </Text>
-
-            {/* ---------- IMAGES ROW ---------- */}
-            {hasImages && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={[{ marginTop: 10 }, { marginBottom: 6 }]}
-                pagingEnabled
-                contentContainerStyle={{ paddingRight: 16 }}
-                decelerationRate="fast"
-              >
-                {item.images.map((img, idx) => {
-                  const imageUrl = img?.asset?.url;
-                  if (!imageUrl) return null;
-
-                  // If there are more than 3 images and we're at index 2, show "+X more" overlay
-                  if (idx === 2 && item.images.length > 3) {
-                    return (
-                      <View key={idx} style={{ position: "relative", marginRight: 1 }}>
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "#fff",
-                          }}
-                          resizeMode="contain"
-                        />
-                        <View
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "rgba(0,0,0,0.5)",
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-                            +{item.images.length - 3}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  }
-
-                  // Only show first 3 images (0, 1, 2)
-                  if (idx > 2) return null;
-
-                  return (
-                    <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "rgba(240, 240, 240, 0.8)",
-                          }}
-                          resizeMode="contain"
-                        />
-                        <View
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                        </View>
-                      </View>
-                  );
-                })}
-
-
-              </ScrollView>
-            )}
-
-            {/* ---------- footer ---------- */}
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardLabel}>
-                {item.hashtags?.length
-                  ? item.hashtags.map((t) => t.hashtag).join(", ")
-                  : "No hashtags"}
-              </Text>
-              <Text style={styles.cardTime}>
-                {new Date(item._createdAt).toLocaleString()}
-              </Text>
-            </View>
-          </View>
-
-          {/* ---------- sidebar---------- */}
-          <View
-            style={[
-              styles.sideBarContainer,
-              {
-                backgroundColor: sideBarColor,
-                //alignSelf: "stretch", 
-                justifyContent: "space-around",
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => handleBookmark(item._id, user?.id)}
-            >
-              <Icon
-                name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"}
-                size={20}
-                color="#333"
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() =>
-                Linking.openURL(
-                  "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
-                )
-              }
-            >
-              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconButton} onPress={() => handleShare(item)}>
-              <Icon name="share-social-outline" size={20} color="#333" />
-            </TouchableOpacity>
-          </View>
+          {item.body?.[0]?.children?.map((child) => child.text).join(" ") ||
+            "No content available"}
+        </Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.cardLabel}>Campus Daemon</Text>
+          <Text style={styles.cardTime}>Just now</Text>
         </View>
       </TouchableOpacity>
     );
   };
 
+      {/* Colored Bar + Icons */}
+      <View style={[styles.sideBarContainer, { backgroundColor: "#FFC5C5" }]}>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="bookmark-outline" size={20} color="#333" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => onShare(item)} // <-- share handler
+        >
+          <Icon name="share-social-outline" size={20} color="#333" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   // Filter by search and hashtag
   const filteredPosts = allPosts.filter((post) => {
@@ -537,15 +187,7 @@ const HomeScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-        <View style={styles.headerRightIcons}>
-          <TouchableOpacity
-            onPress={() => setSearchVisible(!searchVisible)}
-            style={styles.iconButton}
-          >
-            <Icon name="search-outline" size={26} color="#333" />
-          </TouchableOpacity>
-          <NotificationButton />
-        </View>
+        <View style={styles.headerRightIcons}></View>
       </View>
 
       {/* Search bar */}
@@ -731,3 +373,96 @@ const HomeScreen = () => {
 };
 
 export default HomeScreen;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+  },
+  headerRightIcons: {
+    flexDirection: "row",
+  },
+  iconButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  cardContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTextContainer: {
+    flex: 3,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 4,
+  },
+  cardCategory: {
+    fontSize: 10,
+    fontStyle: "italic",
+    color: "#666",
+    marginBottom: 6,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 10,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  cardLabel: {
+    fontSize: 12,
+    color: "#777",
+  },
+  cardTime: {
+    fontSize: 12,
+    color: "#777",
+  },
+  sideBarContainer: {
+    flex: 0.5,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingFooter: {
+    padding: 10,
+    alignItems: "center",
+  },
+});
