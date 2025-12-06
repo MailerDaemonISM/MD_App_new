@@ -1,35 +1,56 @@
 {
   "expo": {
-    "name": "MDApp",
-    "slug": "MDApp",
+    "name": "MD App",
+    "slug": "md-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "owner": "mailer-daemon", 
+    "icon": "./assets/md_logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.adityaapp.bundle"
+      "bundleIdentifier": "com.yourcompany.mdapp"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/md_logo.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.adityaapp.android"
+      "package": "com.yourcompany.mdapp",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "sdkVersion": "52.0.0",
-    "platforms": ["ios", "android", "web"],
-    "updates": {
-      "fallbackToCacheTimeout": 0
+    "scheme": "mdapp",
+    "plugins": [
+      "expo-image-picker",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/md_logo.png",
+          "color": "#FF6600",
+          "sounds": [],
+          "mode": "production"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "67ca0aa9-492d-41f1-bbdb-6f8c16d7b345"
+      }
     }
   }
 }

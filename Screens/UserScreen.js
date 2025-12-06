@@ -1,13 +1,616 @@
-// screens/Screen2.js
-import React from 'react';
-import { View, Text, Button } from 'react-native';
+import { useUser } from "@clerk/clerk-expo";
+import { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Share,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
+import { client } from "../sanity";
+import styles from "./HomeScreen.style";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { hashtags as hashtagData } from "./hashtags";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Modal from "react-native-modal";
+import { Linking } from "react-native";
 
-const UserScreen = ({ navigation }) => {
+
+const hashtagColorMap = hashtagData.reduce((map, tag) => {
+  map[tag.title] = tag.color;
+  return map;
+}, {});
+
+const handleShare = async (post) => {
+  try {
+    const message = `${post.title}\n\n${
+      Array.isArray(post.body)
+        ? post.body
+            .map((block) =>
+              Array.isArray(block.children)
+                ? block.children.map((child) => child.text).join("")
+                : ""
+            )
+            .join("\n\n")
+        : typeof post.body === "string"
+        ? post.body
+        : ""
+    }`;
+
+    await Share.share({ message });
+  } catch (error) {
+    console.error("Error sharing post:", error);
+  }
+};
+
+const getImageUrl = (image) => {
+  if (!image || !image.asset || !image.asset._ref) return null;
+  const parts = image.asset._ref.split("-");
+  const imageId = parts[1];
+  const dimensions = parts[2];
+  const format = parts[3];
+  return `https://cdn.sanity.io/images/zltsypm6/production/${imageId}-${dimensions}.${format}`;
+};
+
+const getUserSpecificKey = (userId) => {
+  return `placementBookmarks_${userId}`;
+};
+
+const UserScreen = () => {
+  const navigation = useNavigation();
+  const { user } = useUser();
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [userDocId, setUserDocId] = useState(null);
+  const [placementBookmarks, setPlacementBookmarks] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const isFocused = useIsFocused();
+
+  const fetchSavedPosts = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const query = `*[_type == "user" && clerkId == $clerkId][0]{
+        _id,
+        saved_post[]->{
+          _id,
+          title,
+          body,
+          images[]{asset->{url}},
+          _createdAt,
+          hashtags[]->{_id, hashtag}
+        }
+      }`;
+      const data = await client.fetch(query, { clerkId: user.id });
+      // Reverse the array so last saved appears on top
+      const reversedPosts = (data?.saved_post || []).reverse();
+      setSavedPosts(reversedPosts);
+      setUserDocId(data?._id);
+    } catch (err) {
+      console.error("Error fetching saved posts:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPlacementBookmarks = async () => {
+    if (!user) return;
+    try {
+      const userKey = getUserSpecificKey(user.id);
+      const bookmarks = await AsyncStorage.getItem(userKey);
+      if (bookmarks) {
+        setPlacementBookmarks(JSON.parse(bookmarks));
+      }
+    } catch (error) {
+      console.error("Error loading placement bookmarks:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchSavedPosts();
+      fetchPlacementBookmarks();
+    }
+  }, [isFocused, user]);
+
+  const toggleSavePost = async (postId) => {
+    if (!userDocId) return;
+    try {
+      const alreadySaved = savedPosts.some((p) => p._id === postId);
+      setSavedPosts((prev) =>
+        alreadySaved
+          ? prev.filter((p) => p._id !== postId)
+          : [...prev, { _id: postId }]
+      );
+
+      if (alreadySaved) {
+        await client
+          .patch(userDocId)
+          .unset([`saved_post[_ref=="${postId}"]`])
+          .commit();
+      } else {
+        await client
+          .patch(userDocId)
+          .setIfMissing({ saved_post: [] })
+          .append("saved_post", [{ _type: "reference", _ref: postId }])
+          .commit();
+      }
+    } catch (err) {
+      console.error("Error toggling saved post:", err);
+      fetchSavedPosts();
+    }
+  };
+
+  const togglePlacementBookmark = async (item) => {
+    if (!user) return;
+    try {
+      const userKey = getUserSpecificKey(user.id);
+      const isBookmarked = placementBookmarks.some(
+        (post) => post.id === item.id
+      );
+      let updatedBookmarks;
+
+      if (isBookmarked) {
+        updatedBookmarks = placementBookmarks.filter(
+          (post) => post.id !== item.id
+        );
+      } else {
+        updatedBookmarks = [...placementBookmarks, item];
+      }
+
+      await AsyncStorage.setItem(userKey, JSON.stringify(updatedBookmarks));
+      setPlacementBookmarks(updatedBookmarks);
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+    }
+  };
+
+  const handlePostPress = (post) => {
+    setSelectedPost(post);
+    setIsModalVisible(true);
+  };
+
+  const handlePlacementPress = (item) => {
+    if (!item.year) {
+      console.warn("Cannot fetch details: item.year is missing");
+      return;
+    }
+    let url = "";
+    const yearStr = item.year.toString();
+    switch (yearStr) {
+      case "2024":
+        url =
+          "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+        break;
+    case "2023":
+      url = "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202023%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      break;
+    case "2022":
+      url = "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202022%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      break;
+    case "2021":
+      url =  "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+      break;
+    default:
+      console.warn("No URL available for year:", yearStr);
+      return;
+  }
+
+  // Navigate to Details screen
+  navigation.navigate("Details", {
+    company_name: item.company_name || item.name,
+    year: item.year,
+    url,
+    from: "UserScreen",
+  });
+};
+
+
+  // Home posts render (unchanged)
+ const renderItem = ({ item }) => {
+  const description = Array.isArray(item.body)
+    ? item.body
+        .map((block) =>
+          Array.isArray(block.children)
+            ? block.children.map((child) => child.text).join("")
+            : ""
+        )
+        .join("\n\n")
+    : typeof item.body === "string"
+    ? item.body
+    : "";
+
+  const firstTag = item.hashtags?.[0]?.hashtag;
+  const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
+  const hasImages = Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
+
   return (
-    <View className='flex-1 justify-center items-center bg-gray-300'>
-      <Text>Welcome to Screen2</Text>
+    <TouchableOpacity onPress={() => handlePostPress(item)}>
+      <View style={[styleshome.cardContainer, hasImages && { paddingBottom: 0 }]}>
+        <View style={styles.cardTextContainer}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text numberOfLines={3} style={styles.cardDescription}>
+            {description || "No content available"}
+          </Text>
+
+          {/* ✅ Horizontal image scroller */}
+          {hasImages && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 10, marginBottom: 6 }}
+              contentContainerStyle={{ paddingRight: 16 }}
+              pagingEnabled
+              decelerationRate="fast"
+            >
+              {item.images.map((img, idx) => {
+                const imageUrl = img?.asset?.url;
+                if (!imageUrl) return null;
+
+                if (idx === 2 && item.images.length > 3) {
+                  return (
+                    <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={{
+                          width: 70,
+                          height: 70,
+                          borderRadius: 10,
+                          backgroundColor: "#fff",
+                        }}
+                        resizeMode="contain"
+                      />
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: 70,
+                          height: 70,
+                          borderRadius: 10,
+                          backgroundColor: "rgba(0,0,0,0.5)",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                          +{item.images.length - 3}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                }
+                if (idx > 2) return null;
+
+                return (
+                  <Image
+                    key={idx}
+                    source={{ uri: imageUrl }}
+                    style={{
+                      width: 70,
+                      height: 70,
+                      borderRadius: 10,
+                      marginRight: 8,
+                      backgroundColor: "#fff",
+                    }}
+                    resizeMode="contain"
+                  />
+                );
+              })}
+            </ScrollView>
+          )}
+
+          <View style={styles.cardFooter}>
+            <View>
+              {item.hashtags?.length ? (
+                item.hashtags.map((t, i) => (
+                  <Text key={i} style={styles.cardLabel}>
+                    {t.hashtag}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.cardLabel}>No hashtags</Text>
+              )}
+            </View>
+            <Text style={styles.cardTime}>
+              {new Date(item._createdAt).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => toggleSavePost(item._id)}
+          >
+            <Icon
+              name={
+                savedPosts.some((p) => p._id === item._id)
+                  ? "bookmark"
+                  : "bookmark-outline"
+              }
+              size={20}
+              color="#333"
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+              )
+            }
+          >
+            <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => handleShare(item)}
+          >
+            <Icon name="share-social-outline" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+  // Placement cards (only updated for Details navigation)
+  const renderPlacementCard = ({ item }) => {
+    const isBookmarked = placementBookmarks.some((post) => post.id === item.id);
+
+    return (
+      <TouchableOpacity onPress={() => handlePlacementPress(item)}>
+        <View style={placementStyles.card}>
+          <Image
+            source={{ uri: getImageUrl(item.image) }}
+            style={placementStyles.companyLogo}
+          />
+          <View style={placementStyles.cardContent}>
+            <Text style={placementStyles.title}>{item.name}</Text>
+            <Text style={placementStyles.detail}>Role: {item.role}</Text>
+            <Text>On Campus</Text>
+            <Text>Year: {item.year}</Text>
+          </View>
+          <View style={placementStyles.iconsContainer}>
+            <TouchableOpacity
+              style={placementStyles.iconButton}
+              onPress={() => togglePlacementBookmark(item)}
+            >
+              <Icon
+                name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color="#333"
+              />
+            </TouchableOpacity>
+           <TouchableOpacity
+                     style={styles.iconButton}
+                     onPress={() =>
+                       Linking.openURL(
+                         "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                       )
+                     }
+                      > 
+                     <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+                   </TouchableOpacity>
+            <TouchableOpacity
+              style={placementStyles.iconButton}
+              onPress={() => handleShare(item)}
+            >
+              <Icon name="share-social-outline" size={20} color="#333" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+      
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={placementStyles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF5733" />
+        <Text style={placementStyles.loadingText}>
+          Loading saved content...
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={placementStyles.container}>
+      <FlatList
+        data={[...savedPosts, ...placementBookmarks]}
+        keyExtractor={(item) => item._id || item.id}
+        renderItem={({ item }) => {
+          if (item.company_name || item.name) {
+            return renderPlacementCard({ item });
+          } else {
+            return renderItem({ item });
+          }
+        }}
+        ListEmptyComponent={() => (
+          <Text style={placementStyles.noResultsText}>
+            No saved posts.
+          </Text>
+        )}
+      />
+
+      {/* Modal outside FlatList for smooth rendering */}
+      <Modal
+        visible={!!selectedPost}
+        animationType="slide"
+        transparent
+        style={{ margin: 0 }}
+        onRequestClose={() => setSelectedPost(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedPost(null)}
+          />
+          <View style={styles.modalContent}>
+            <ScrollView
+              contentContainerStyle={{ paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+              {selectedPost?.images?.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  pagingEnabled
+                  decelerationRate="fast"
+                  snapToInterval={260}
+                  nestedScrollEnabled
+                  style={{ marginVertical: 10 }}
+                >
+                  {selectedPost.images.map((img, idx) => (
+                    <Image
+                      key={idx}
+                      source={{ uri: img.asset.url }}
+                      style={{
+                        width: 250,
+                        aspectRatio: 1,
+                        borderRadius: 10,
+                        marginRight: 10,
+                      }}
+                      resizeMode="contain"
+                    />
+                  ))}
+                </ScrollView>
+              )}
+              <Text style={styles.modalDescription}>
+                {Array.isArray(selectedPost?.body)
+                  ? selectedPost.body
+                      .map((block) =>
+                        Array.isArray(block.children)
+                          ? block.children.map((child) => child.text).join("")
+                          : ""
+                      )
+                      .join("\n\n")
+                  : typeof selectedPost?.body === "string"
+                  ? selectedPost.body
+                  : "No content available"}
+              </Text>
+              <Text style={styles.modalHashtags}>
+                {selectedPost?.hashtags?.length
+                  ? selectedPost.hashtags
+                      .map((tag) => `${tag.hashtag}`)
+                      .join("\n")
+                  : "No hashtags"}
+              </Text>
+              <Text style={styles.modalTime}>
+                {new Date(selectedPost?._createdAt).toLocaleString()}
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
+
+// Home screen styles for posts
+const styleshome = StyleSheet.create({
+  cardContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 8,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    overflow: "hidden",
+    borderColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 7,
+  },
+});
+
+// Placement list styles
+const placementStyles = StyleSheet.create({
+  card: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 8,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    overflow: "hidden",
+    borderColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 7,
+    alignItems: "center",
+  },
+  companyLogo: {
+    width: 100,
+    height: 100,
+    resizeMode: "contain",
+    marginLeft: 8,
+  },
+  cardContent: {
+    flex: 1,
+    marginLeft: 12,
+    paddingVertical: 8,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  detail: {
+    fontSize: 14,
+    color: "#555",
+  },
+  iconsContainer: {
+    width: 50,
+    justifyContent: "space-around",
+    backgroundColor: "#98DDFF",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  iconButton: {
+    padding: 10,
+    alignItems: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#333",
+    marginTop: 10,
+    fontWeight: "bold",
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: "#555",
+    textAlign: "center",
+    fontWeight: "bold",
+    marginTop: 20,
+  },
+});
 
 export default UserScreen;

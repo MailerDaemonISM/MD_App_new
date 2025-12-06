@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ActivityIndicator,
-  StyleSheet,
   ScrollView,
   BackHandler,
   Image,
@@ -11,6 +10,7 @@ import {
 import { Card, Title, Paragraph, List } from "react-native-paper";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { styles } from "./DetailScreen.style";
 
 const getImageUrl = (image) => {
   if (!image || !image.asset || !image.asset._ref) return null;
@@ -43,8 +43,15 @@ const Details = ({ route }) => {
       setPlacementDetails(null);
       const data = await fetchPlacementDetails(url);
       const details = data
-        ? data.filter((item) => item.company_name === company_name)
-        : null;
+  ? data.filter((item) => {
+      const cmp = company_name?.toLowerCase();
+      return (
+        (item.company_name && item.company_name.toLowerCase() === cmp) ||
+        (item.name && item.name.toLowerCase() === cmp)
+      );
+    })
+  : null;
+
 
       if (details && details.length > 0) {
         setPlacementDetails(details[0]);
@@ -58,16 +65,23 @@ const Details = ({ route }) => {
   }, [url, company_name]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
+  React.useCallback(() => {
+    const onBackPress = () => {
+      if (route.params?.from === "UserScreen") {
+        navigation.navigate("UserScreen");
+      } else {
         navigation.navigate("Placementor");
-        return true;
-      };
-      BackHandler.addEventListener("hardwareBackPress", onBackPress);
-      return () =>
-        BackHandler.removeEventListener("hardwareBackPress", onBackPress);
-    }, [navigation])
-  );
+      }
+      return true; 
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+    return () => {
+      BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+    };
+  }, [navigation, route.params])
+);
 
   if (loading) {
     return (
@@ -123,7 +137,36 @@ const Details = ({ route }) => {
 
       {/* Influence Of */}
       <InfluenceOfSection data={placementDetails.influence_of} />
+
+      {/* Selected Candidates Section */}
+      <SelectedCandidatesSection data={placementDetails.selected} />
     </ScrollView>
+  );
+};
+
+// Selected Candidates Section
+const SelectedCandidatesSection = ({ data }) => {
+  if (!data || data.length === 0) return null;
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Selected Candidates</Text>
+      <List.Section>
+        <List.Accordion
+          title="View Candidates"
+          titleStyle={styles.accordionTitle}
+          left={props => <MaterialIcons {...props} name="people" size={24} color="gray" />}
+        >
+          {data.map((name, index) => (
+            <List.Item
+              key={index}
+              title={name}
+          left={props => <MaterialIcons {...props} name="people" size={24} color="gray" />}
+            />
+          ))}
+        </List.Accordion>
+      </List.Section>
+    </>
   );
 };
 
@@ -142,46 +185,68 @@ const parsePortableText = (blocks) => {
 
 // ----------------- Section Components -----------------
 // Interview Rounds Section
-const InterviewRoundsSection = ({ data }) => (
-  <>
-    <Text style={styles.sectionHeading}>Interview Rounds</Text>
-    <List.Section>
-      {data ? (
-        Object.entries(data).map(([key, value], index) => (
-          <List.Accordion key={key} title={`Round ${index + 1}`} titleStyle={styles.accordionTitle}>
-            <Text style={styles.accordionText}>{value}</Text>
-          </List.Accordion>
-        ))
-      ) : (
-        <Paragraph style={styles.detail}>No interview round details available.</Paragraph>
-      )}
-    </List.Section>
-  </>
-);
+const InterviewRoundsSection = ({ data }) => {
+  if (!data || Object.keys(data).length === 0) return null;
 
-// Selection Process Section
-const SelectionProcessSection = ({ data }) => {
-  if (!data) return null;
-  const keyMap = {
-    step1: "Round 1",
-    step2: "Group Discussion Round",
-    step3: "Interview Round",
-  };
-  const sortedKeys = Object.keys(data).sort();
+  const rounds = Object.entries(data).filter(
+    ([, value]) => value && value.trim() !== ""
+  );
+
+  if (rounds.length === 0) return null;
 
   return (
     <>
-      <Text style={styles.sectionHeading}>Selection Process</Text>
+      <Text style={styles.sectionHeading}>Interview Rounds</Text>
       <List.Section>
-        {sortedKeys.map((key) => (
-          <List.Accordion key={key} title={keyMap[key] || key} titleStyle={styles.accordionTitle}>
-            <Text style={styles.accordionText}>{data[key]}</Text>
+        {rounds.map(([key, value], index) => (
+          <List.Accordion
+            key={key}
+            title={`Round ${index + 1}`}
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
         ))}
       </List.Section>
     </>
   );
 };
+
+
+// Selection Process Section
+const SelectionProcessSection = ({ data }) => {
+  if (!data || Object.keys(data).length === 0) return null;
+
+  const keyMap = {
+    step1: "Round 1",
+    step2: "Group Discussion Round",
+    step3: "Interview Round",
+  };
+
+  const steps = Object.entries(data).filter(
+    ([, value]) => value && value.trim() !== ""
+  );
+
+  if (steps.length === 0) return null;
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>Selection Process</Text>
+      <List.Section>
+        {steps.map(([key, value]) => (
+          <List.Accordion
+            key={key}
+            title={keyMap[key] || key}
+            titleStyle={styles.accordionTitle}
+          >
+            <Text style={styles.accordionText}>{value}</Text>
+          </List.Accordion>
+        ))}
+      </List.Section>
+    </>
+  );
+};
+
 
 // Resources Section
 const ResourcesSection = ({ data }) => {
@@ -200,23 +265,32 @@ const ResourcesSection = ({ data }) => {
 };
 
 // Reusable Section Component
-const Section = ({ title, data }) => (
-  <>
-    <Text style={styles.sectionHeading}>{title}</Text>
-    <List.Section>
-      {data ? (
-        Object.entries(data).map(([key, value]) => (
-          <List.Accordion key={key} title={key} titleStyle={styles.accordionTitle}>
+const Section = ({ title, data }) => {
+  if (!data) return null;
+
+  const items = Object.entries(data).filter(
+    ([, value]) => value && value.trim() !== ""
+  );
+
+  if (items.length === 0) return null;
+
+  return (
+    <>
+      <Text style={styles.sectionHeading}>{title}</Text>
+      <List.Section>
+        {items.map(([key, value]) => (
+          <List.Accordion
+            key={key}
+            title={key}
+            titleStyle={styles.accordionTitle}
+          >
             <Text style={styles.accordionText}>{value}</Text>
           </List.Accordion>
-        ))
-      ) : (
-        <Paragraph style={styles.detail}>No {title.toLowerCase()} details available.</Paragraph>
-      )}
-    </List.Section>
-  </>
-);
-
+        ))}
+      </List.Section>
+    </>
+  );
+};
 // Influence Of Section
 const InfluenceOfSection = ({ data }) => {
   if (!data) return null;
@@ -238,90 +312,5 @@ const InfluenceOfSection = ({ data }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  loadingText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 10,
-    color: "#000000",
-  }
-  ,
-  noDataContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  noDataText: {
-    fontSize: 18,
-    color: "gray",
-    marginTop: 10,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#222",
-    marginBottom: 10,
-  },
-  detail: {
-    fontSize: 18,
-    color: "#555",
-    marginVertical: 5,
-  },
-  card: {
-    marginVertical: 10,
-    padding: 15,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-  },
-  sectionHeading: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#98DDFF",
-    color: "black",
-    marginVertical: 15,
-    borderBottomWidth: 2,
-    borderBottomColor: "black",
-  },
-  accordionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    padding: 10,
-    // backgroundColor: "#F5F5
-    // F5", // Light background
-    borderRadius: 8,
-  }
-  ,
-  accordionText: {
-    fontSize: 14,
-    color: "#333",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontStyle: "italic",
-  },
-  companyLogo: {
-    width: 120,
-    height: 120,
-    resizeMode: "contain",
-    alignSelf:"center",
-    marginBottom: -9, 
-  },
-});
 
 export default Details;

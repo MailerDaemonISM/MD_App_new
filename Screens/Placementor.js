@@ -13,12 +13,21 @@ import {
   Share
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
+import { useUser } from "@clerk/clerk-expo";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
+
 let url = "";
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
-  if (year === "2024") {
+  if(year === "2025")
+    url=  "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202025%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  else if (year === "2024") {
     url =
       "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   } else if (year === "2023") {
@@ -30,9 +39,6 @@ const fetchPlacementData = async (year) => {
   } else if (year == "2021") {
     url =
       "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202021%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
-  } else if (year == "2020") {
-    url =
-      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202020%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   }
 
   try {
@@ -66,8 +72,10 @@ const PlacementList = () => {
   const [filteredPlacements, setFilteredPlacements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [selectedYear, setSelectedYear] = useState("2024");
+  const [selectedYear, setSelectedYear] = useState("2025");
   const [selectedBranch, setSelectedBranch] = useState("All");
+  const { user } = useUser();
+  const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -86,6 +94,61 @@ const PlacementList = () => {
     };
     getData();
   }, [selectedYear]); // Refetch data whenever the selected year changes
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadBookmarks();
+      }
+    }, [user])
+  );
+
+  const loadBookmarks = async () => {
+    if (!user) return;
+    try {
+      const userKey = getUserSpecificKey(user.id);
+      const savedBookmarks = await AsyncStorage.getItem(userKey);
+      if (savedBookmarks) {
+        setBookmarkedPosts(JSON.parse(savedBookmarks));
+      }
+    } catch (error) {
+      console.error('Error loading bookmarks:', error);
+    }
+  };
+
+  // Update the toggleBookmark function
+  const toggleBookmark = async (item) => {
+    if (!user) return;
+    try {
+      const userKey = getUserSpecificKey(user.id);
+      // Create a unique identifier for the placement item
+      const placementItem = {
+        ...item,
+        id: item._id || `placement_${item.company_name}_${item.year}` // Create unique ID if none exists
+      };
+
+      const isBookmarked = bookmarkedPosts.some(post =>
+        post.id === placementItem.id ||
+        post._id === placementItem._id
+      );
+
+      let updatedBookmarks;
+
+      if (isBookmarked) {
+        updatedBookmarks = bookmarkedPosts.filter(post =>
+          post.id !== placementItem.id &&
+          post._id !== placementItem._id
+        );
+      } else {
+        updatedBookmarks = [...bookmarkedPosts, placementItem];
+      }
+
+      await AsyncStorage.setItem(userKey, JSON.stringify(updatedBookmarks));
+      setBookmarkedPosts(updatedBookmarks);
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
+  };
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -110,7 +173,7 @@ const PlacementList = () => {
       const name = item.name ? item.name.toLowerCase() : "";
       const companyName = item.company_name ? item.company_name.toLowerCase() : "";
       const role = item.role ? item.role.toLowerCase() : "";
-  
+
       const matchesSearch =
         name.includes(text.toLowerCase()) ||
         companyName.includes(text.toLowerCase()) ||
@@ -120,18 +183,18 @@ const PlacementList = () => {
       const eligibleBranches = item.eligible_branch
         ? item.eligible_branch.toLowerCase().split(",")
         : [];
-  
+
       const isBranchEligible =
         branch === "All" ||
         eligibleBranches.includes(branch.toLowerCase()) ||
         eligibleBranches.includes("open to all");
-  
+
       return matchesSearch && isBranchEligible;
     });
-  
+
     setFilteredPlacements(filteredData);
   };
-  
+
 
   const navigateToDetails = (company_name, year, url) => {
     navigation.navigate("Details", { company_name, year, url });
@@ -179,6 +242,9 @@ const PlacementList = () => {
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="open-in-new" size={20} color="#333" />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="open-in-new" size={20} color="#333" />
+        </TouchableOpacity> */}
       </View>
     </TouchableOpacity>
   );
@@ -194,12 +260,24 @@ const PlacementList = () => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Search placements..."
-        value={searchText}
-        onChangeText={handleSearch}
-      />
+      <View style={styles.searchBarContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search placements..."
+          value={searchText}
+          onChangeText={handleSearch}
+          placeholderTextColor="#888"
+        />
+        {searchText.length > 0 && (
+          <TouchableOpacity onPress={() => {
+            setSearchText("");
+            setFilteredPlacements(placements);
+          }}
+            style={styles.clearButton}>
+            <Icon name="close" size={22} color="#777" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Dropdowns for selecting year and branch */}
       <View style={styles.filterContainer}>
@@ -208,11 +286,12 @@ const PlacementList = () => {
           style={styles.picker}
           onValueChange={(itemValue) => setSelectedYear(itemValue)}
         >
+          <Picker.Item label="2025" value="2025" />
           <Picker.Item label="2024" value="2024" />
           <Picker.Item label="2023" value="2023" />
           <Picker.Item label="2022" value="2022" />
           <Picker.Item label="2021" value="2021" />
-          <Picker.Item label="2020" value="2020" />
+          {/* <Picker.Item label="2020" value="2020" /> */}
         </Picker>
 
         <Picker
@@ -241,7 +320,11 @@ const PlacementList = () => {
       {filteredPlacements.length > 0 ? (
         <FlatList
           data={filteredPlacements}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) =>
+            item._id
+              ? item._id.toString()
+              : `${item.company_name || "unknown"}_${item.year || "NA"}_${index}`
+          }
           renderItem={renderCard}
         />
       ) : (
@@ -352,6 +435,27 @@ const styles = StyleSheet.create({
     color: "#555",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  searchBarContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    margin: 10,
+    paddingHorizontal: 10,
+  },
+
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: "#333",
+  },
+
+  clearButton: {
+    padding: 6,
   },
 });
 
