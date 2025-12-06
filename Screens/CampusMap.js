@@ -50,7 +50,7 @@ export default function CampusMap() {
    if (Platform.OS === "web") {
     return (
       <iframe
-        src="https://www.google.com/maps/d/embed?mid=1HEt-lVoWivOusLhbzv8C35doZxiQvPY"
+        src="https://www.google.com/maps/d/u/4/embed?mid=1knM2y6BVRVVEo1E2BoQ7dpu8-6RrS5Q&ehbc=2E312F"
         width="100%"
         height="100%"
         style={{ border: "none" }}
@@ -62,7 +62,7 @@ export default function CampusMap() {
     <View style={styles.container}>
       <WebView
         originWhitelist={["*"]}
-        source={{ uri: "https://www.google.com/maps/d/embed?mid=1HEt-lVoWivOusLhbzv8C35doZxiQvPY" }}
+        source={{ uri: "https://www.google.com/maps/d/u/4/embed?mid=1knM2y6BVRVVEo1E2BoQ7dpu8-6RrS5Q&ehbc=2E312F" }}
         style={styles.map}
       />
     </View>
