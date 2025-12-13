@@ -19,13 +19,11 @@
     "@react-navigation/native-stack": "^6.9.25",
     "@react-navigation/stack": "^6.3.20",
     "@sanity/client": "^6.27.1",
-    "autoprefixer": "^10.4.20",
     "babel-preset-react-app": "^10.0.1",
     "babel-runtime": "^6.26.0",
     "expo": "^53.0.0",
     "expo-status-bar": "~2.0.1",
     "nativewind": "^2.0.11",
-    "postcss": "^8.5.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-native": "0.76.9",
@@ -37,11 +35,13 @@
     "react-native-screens": "~4.4.0",
     "react-native-splash-screen": "^3.3.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-web": "^0.19.13",
-    "tailwindcss": "^3.3.2"
+    "react-native-web": "^0.19.13"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.17"
   },
   "private": true
 }
