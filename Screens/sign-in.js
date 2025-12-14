@@ -23,7 +23,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useOAuth, useSignIn } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
 
 const { height, width } = Dimensions.get("window");
 
@@ -41,8 +40,7 @@ const COLORS = {
   BACKGROUND: "#FFFFFF",
 };
 
-export default function SignInScreen() {
-  const router = useRouter();
+export default function () {
   const { isLoaded } = useSignIn();
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
@@ -122,7 +120,7 @@ export default function SignInScreen() {
         <View style={styles.content}>
           <Animated.View style={[styles.logoCard, logoStyle]}>
             <Image
-              source={require("../../assets/md_logo.png")}
+              source={require("../assets/md_logo.png")}
               style={styles.logo}
             />
           </Animated.View>

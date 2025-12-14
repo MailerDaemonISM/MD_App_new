@@ -16,7 +16,7 @@ import CampusMap from "./Screens/CampusMap";
 import UserScreen from "./Screens/UserScreen";
 import Clubs from "./Screens/clubs";
 
-import SignInScreen from "./app/auth/sign-in";
+import SignInScreen from "./Screens/sign-in";
 
 import { ClerkProvider, SignedIn, SignedOut } from "@clerk/clerk-expo";
 import { tokenCache } from "./utils/cache";
