@@ -20,6 +20,7 @@
       "bundleIdentifier": "com.yourcompany.mdapp"
     },
     "android": {
+      "targetSdkVersion": 35,
       "adaptiveIcon": {
         "foregroundImage": "./assets/md_logo.png",
         "backgroundColor": "#ffffff"
