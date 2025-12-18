@@ -11,3 +11,8 @@ Camera access is requested only when required for core features.
 
 If you have any questions about this Privacy Policy, contact:
 dev.mailer.daemon@gmail.com
+
+
+Contact Details:
+email : dev.mailer.daemon@iitism.ac.in
+phone: +91-7694840489
