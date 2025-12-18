@@ -43,14 +43,14 @@ const Details = ({ route }) => {
       setPlacementDetails(null);
       const data = await fetchPlacementDetails(url);
       const details = data
-  ? data.filter((item) => {
-      const cmp = company_name?.toLowerCase();
-      return (
-        (item.company_name && item.company_name.toLowerCase() === cmp) ||
-        (item.name && item.name.toLowerCase() === cmp)
-      );
-    })
-  : null;
+        ? data.filter((item) => {
+          const cmp = company_name?.toLowerCase();
+          return (
+            (item.company_name && item.company_name.toLowerCase() === cmp) ||
+            (item.name && item.name.toLowerCase() === cmp)
+          );
+        })
+        : null;
 
 
       if (details && details.length > 0) {
@@ -65,23 +65,27 @@ const Details = ({ route }) => {
   }, [url, company_name]);
 
   useFocusEffect(
-  React.useCallback(() => {
-    const onBackPress = () => {
-      if (route.params?.from === "UserScreen") {
-        navigation.navigate("UserScreen");
-      } else {
-        navigation.navigate("Placementor");
-      }
-      return true; 
-    };
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (route.params?.from === "UserScreen") {
+          navigation.navigate("UserScreen");
+        } else {
+          navigation.navigate("Placementor");
+        }
+        return true; // prevent default back behavior
+      };
 
-    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
 
-    return () => {
-      BackHandler.removeEventListener("hardwareBackPress", onBackPress);
-    };
-  }, [navigation, route.params])
-);
+      return () => {
+        subscription.remove(); // ✅ correct cleanup
+      };
+    }, [navigation, route.params])
+  );
+
 
   if (loading) {
     return (
@@ -161,7 +165,7 @@ const SelectedCandidatesSection = ({ data }) => {
             <List.Item
               key={index}
               title={name}
-          left={props => <MaterialIcons {...props} name="people" size={24} color="gray" />}
+              left={props => <MaterialIcons {...props} name="people" size={24} color="gray" />}
             />
           ))}
         </List.Accordion>
