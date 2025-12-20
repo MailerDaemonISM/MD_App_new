@@ -27,6 +27,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { setUserIfNotExists } from "../api/user";
 import NotificationButton from "../components/notification";
 import { Linking } from "react-native";
+import { buildShareText } from "../utils/shareText";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback } from "react";
 import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
@@ -34,6 +35,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RefreshControl } from "react-native";
 import { Animated } from "react-native";
 import * as Notifications from 'expo-notifications';
+import { useRoute } from "@react-navigation/native"; 
+import { getPostById,getPosts } from "../api/post";
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -54,7 +57,9 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
-  
+  const route = useRoute();
+  const postId = route.params?.postId;
+
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
@@ -268,33 +273,31 @@ const HomeScreen = () => {
       setCurrentPage(nextPage);
     }
   };
+useEffect(() => {
+  if (postId) {
+    getPostById(postId)
+      .then((post) => {
+        if (post) {
+          setAllPosts([post]); // render only this post
+          setVisiblePosts([post]);
+          setSelectedPost(post); // open modal / view directly
+        }
+      })
+      .catch(console.error);
+  } else {
+    getPosts().then(setAllPosts);
+  }
+}, [postId]);
 
-  // share
-  const handleShare = async (post) => {
-    try {
-      const message = `${post.title}\n\n${Array.isArray(post.body)
-        ? post.body
-          .map((block) =>
-            Array.isArray(block.children)
-              ? block.children.map((child) => child.text).join("")
-              : ""
-          )
-          .join("\n\n")
-        : typeof post.body === "string"
-          ? post.body
-          : ""
-        }`;
-      await Share.share({ message });
-    } catch (error) {
-      console.error("Error sharing post:", error);
-    }
-  };
-
-  // get sanity userId from clerkId
-  const fetchSanityUserId = async (clerkId) => {
-    const query = `*[_type == "user" && clerkId == $clerkId][0]{ _id }`;
-    return await client.fetch(query, { clerkId });
-  };
+// share
+const handleShare = async (post) => {
+  try {
+    const message = buildShareText(post);
+    await Share.share({ message });
+  } catch (error) {
+    console.error("Error sharing post:", error);
+  }
+};
 
   // toggle bookmark button
   const handleBookmark = async (postId, clerkId) => {
@@ -553,6 +556,7 @@ const HomeScreen = () => {
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search posts..."
+            placeholderTextColor="#666" 
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchBox}

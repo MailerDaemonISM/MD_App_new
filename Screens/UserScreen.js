@@ -30,19 +30,22 @@ const hashtagColorMap = hashtagData.reduce((map, tag) => {
 
 const handleShare = async (post) => {
   try {
-    const message = `${post.title}\n\n${
-      Array.isArray(post.body)
-        ? post.body
-            .map((block) =>
-              Array.isArray(block.children)
-                ? block.children.map((child) => child.text).join("")
-                : ""
-            )
-            .join("\n\n")
-        : typeof post.body === "string"
-        ? post.body
-        : ""
-    }`;
+    const schemeLink = `mdapp://post/${post._id}`;
+    const webFallback = `https://mdapp.com/post/${post._id}`;
+
+    const bodyText = Array.isArray(post.body) 
+      ? post.body
+          .map((block) =>
+            Array.isArray(block.children)
+              ? block.children.map((child) => child.text).join("")
+              : ""
+          )
+          .join("\n\n")
+      : typeof post.body === "string"
+      ? post.body
+      : "";
+
+    const message = `${post.title}\n\n${bodyText}\n\nOpen in app: ${schemeLink}\nView on web: ${webFallback}`;
 
     await Share.share({ message });
   } catch (error) {

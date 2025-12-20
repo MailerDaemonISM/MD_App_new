@@ -3,7 +3,6 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createStackNavigator } from "@react-navigation/stack";
-
 import MDPosts from "./Screens/MDPosts";
 import MDHashtags from "./Screens/MDHashtags";
 import AboutUs from "./Screens/AboutUS";
@@ -24,11 +23,12 @@ import CustomDrawerContent from "./Screens/CustomDrawer";
 import HomeScreen from "./Screens/HomeScreen";
 
 import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View,StatusBar } from "react-native";
 
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
+
 
 // Drawer navigator for signed-in users
 function DrawerNavigator() {
@@ -72,6 +72,8 @@ export default function App() {
       tokenCache={tokenCache}
     >
       <NavigationContainer>
+      <StatusBar style="dark" backgroundColor="#ffffff" />
+
 
         <ClerkLoading>
           <View

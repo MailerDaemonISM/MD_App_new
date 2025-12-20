@@ -129,6 +129,7 @@ const MDLostnFound = () => {
 
         <TextInput
           placeholder="Title (e.g. Lost Wallet)"
+          placeholderTextColor="#666"
           style={styles.input}
           onChangeText={setTitle}
           value={title}
@@ -136,6 +137,7 @@ const MDLostnFound = () => {
 
         <TextInput
           placeholder="Short Description"
+          placeholderTextColor="#666"
           style={[styles.input, styles.descriptionInput]}
           value={description}
           multiline
@@ -156,6 +158,7 @@ const MDLostnFound = () => {
           labelField="label"
           valueField="value"
           placeholder="Lost / Found"
+          placeholderTextColor="#666"
           placeholderStyle={styles.placeholderStyle}
           selectedTextStyle={styles.placeholderStyle}
           value={lostorfound}
@@ -164,6 +167,7 @@ const MDLostnFound = () => {
 
         <TextInput
           placeholder="Location (e.g. Library, Hostel)"
+          placeholderTextColor="#666"
           style={styles.input}
           onChangeText={setlocation}
           value={location}
@@ -171,6 +175,7 @@ const MDLostnFound = () => {
 
         <TextInput
           placeholder="Contact Number"
+          placeholderTextColor="#666"
           style={styles.input}
           keyboardType="numeric"
           onChangeText={setcontact}
@@ -267,6 +272,7 @@ const styles = StyleSheet.create({
   placeholderStyle: {
     color: "#64748b",
     fontSize: 15,
+    placeholderTextColor:"#666"
   },
   uploadBox: {
     borderWidth: 2,

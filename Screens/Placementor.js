@@ -12,7 +12,7 @@ import {
   ScrollView,
   Share
 } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
@@ -52,15 +52,41 @@ const fetchPlacementData = async (year) => {
 };
 
 // Share button handler
+import { buildShareText } from "../utils/shareText";
+
 const onShare = async (post) => {
   try {
-    await Share.share({
-      title: post.title,
-      message:
-        `${post.title}\n\n${post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
-        "No content available"
-        }\n\nShared via Mailer Daemon`,
-    });
+    let message = buildShareText(post);
+
+    // If no body-style text exists, fall back to placement-specific details
+    if (!message || !message.trim()) {
+      const company = post.company_name || post.name || 'Company';
+      const role = post.role || 'Role';
+      const year = post.year ? `Year: ${post.year}` : '';
+
+      // Selected candidates may be stored in different properties; handle common cases
+      let selectedText = '';
+      if (post.selectedCandidates) {
+        selectedText = Array.isArray(post.selectedCandidates)
+          ? `Selected: ${post.selectedCandidates.join(', ')}`
+          : `Selected: ${String(post.selectedCandidates)}`;
+      } else if (post.selected) {
+        selectedText = Array.isArray(post.selected)
+          ? `Selected: ${post.selected.join(', ')}`
+          : `Selected: ${String(post.selected)}`;
+      } else if (post.candidates) {
+        selectedText = Array.isArray(post.candidates)
+          ? `Selected: ${post.candidates.join(', ')}`
+          : `Selected: ${String(post.candidates)}`;
+      } else if (post.name && post.company_name) {
+        // If the item is itself a selected candidate, include the candidate name
+        selectedText = `Candidate: ${post.name}`;
+      }
+
+      message = `${company} - ${role}${year ? '\n' + year : ''}${selectedText ? '\n' + selectedText : ''}`;
+    }
+
+    await Share.share({ message });
   } catch (error) {
     console.error("Error sharing post:", error);
   }
@@ -257,7 +283,7 @@ const PlacementList = () => {
           <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Icon name="share" size={20} color="#333" onPress={() => onShare(item)} />
+          <Icon name="share-social-outline" size={20} color="#333" onPress={() => onShare(item)} />
         </TouchableOpacity>
         {/* <TouchableOpacity style={styles.iconButton}>
           <Icon name="info" size={20} color="#333" />
@@ -379,6 +405,7 @@ const styles = StyleSheet.create({
   picker: {
     width: 150,
     backgroundColor: "#fff",
+      color: "#333",   
   },
   card: {
     flexDirection: "row",
