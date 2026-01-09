@@ -117,7 +117,7 @@ const CustomDrawerContent = (props) => {
             <NavItem
               source={require("../assets/contactUs.png")}
               label="Important Contacts"
-              onPress={() => props.navigation.navigate("ContactUs")}
+              onPress={() => props.navigation.navigate("ImportantContacts")}
             />
           </View>
         </View>

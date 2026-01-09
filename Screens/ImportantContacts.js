@@ -14,7 +14,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { emergencyContacts,importantMails,timings } from "./data.contacts";
 
 
-const ImportantInfo = () => {
+const ImportantContacts = () => {
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: "contacts", title: "Emergency Contacts" },
@@ -248,4 +248,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ImportantInfo;
+export default ImportantContacts;

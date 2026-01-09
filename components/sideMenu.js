@@ -63,8 +63,8 @@ const CustomDrawerContent = (props) => {
         />
         <DrawerItem
           icon={require('../assets/contactUs.png')}
-          label="Contact Us"
-          onPress={() => props.navigation.navigate('ContactUs')}
+          label="Important Contacts"
+          onPress={() => props.navigation.navigate('ImportantContacts')}
         />
       </View>
     </DrawerContentScrollView>

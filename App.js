@@ -6,7 +6,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import MDPosts from "./Screens/MDPosts";
 import MDHashtags from "./Screens/MDHashtags";
 import AboutUs from "./Screens/AboutUS";
-import ContactUs from "./Screens/ContactUs";
+import ImportantContacts from "./Screens/ImportantContacts";
 import MDLostnFound from "./Screens/MDLost&Found";
 import Placementor from "./Screens/Placementor";
 import Details from "./Screens/Details";
@@ -49,7 +49,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
       <Drawer.Screen name="Placementor" component={Placementor} />
       <Drawer.Screen name="UserScreen" component={UserScreen} options={{ title: "Saved Posts" }} />
-      <Drawer.Screen name="ContactUs" component={ContactUs} />
+      <Drawer.Screen name="ImportantContacts" component={ImportantContacts} />
       <Drawer.Screen name="AboutUs" component={AboutUs} />
       <Drawer.Screen name="Details" component={Details} />
     </Drawer.Navigator>
