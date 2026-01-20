@@ -37,10 +37,11 @@ const AboutUs = () => {
         </Text>
 
         <Text style={styles.paragraph}>
-          Founded in 2004, <Text style={styles.highlight}>Mailer Daemon</Text> is
-          the heartbeat of student media at IIT (ISM) Dhanbad. We serve as a
-          bridge between students and the administration, bringing you the
-          latest news, insightful stories, and campus updates.
+          Founded in 2004,{" "}
+          <Text style={styles.highlight}>Mailer Daemon</Text> is the heartbeat of
+          student media at IIT (ISM) Dhanbad. We serve as a bridge between students
+          and the administration, bringing you the latest news, insightful
+          stories, and campus updates.
         </Text>
 
         <Text style={styles.paragraph}>
@@ -56,8 +57,8 @@ const AboutUs = () => {
           Explore student achievements, get career insights, and stay up to date
           with everything happening on campus. Whether you're looking for
           academic guidance or want to dive into the vibrant extracurricular
-          scene, <Text style={styles.highlight}>Mailer Daemon</Text> is your
-          go-to source.
+          scene,{" "}
+          <Text style={styles.highlight}>Mailer Daemon</Text> is your go-to source.
         </Text>
 
         <Text style={styles.paragraph}>
@@ -72,19 +73,57 @@ const AboutUs = () => {
           <SocialIcon
             icon="instagram"
             color="#E1306C"
-            onPress={() => Linking.openURL("https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg==")}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.instagram.com/md_iit_dhanbad"
+              )
+            }
           />
           <SocialIcon
             icon="facebook"
             color="#1877F2"
-            onPress={() => Linking.openURL("https://www.facebook.com/share/1GCyYTFRDv/")}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.facebook.com/share/1GCyYTFRDv/"
+              )
+            }
           />
           <SocialIcon
             icon="whatsapp"
             color="#25D366"
-            onPress={() => Linking.openURL("https://whatsapp.com/channel/0029Vakz08oHltYImHZiIn3g")}
+            onPress={() =>
+              Linking.openURL(
+                "https://whatsapp.com/channel/0029Vakz08oHltYImHZiIn3g"
+              )
+            }
           />
         </View>
+
+        {/* Publisher Contact Section (CRITICAL FOR GOOGLE NEWS POLICY) */}
+        <Text style={styles.contactTitle}>Contact the App Team</Text>
+
+        <Text style={styles.contactText}>
+          For queries, corrections, or concerns regarding content published in
+          this app, please contact the Mailer Daemon app team:
+        </Text>
+
+        <TouchableOpacity
+          onPress={() =>
+            Linking.openURL("mailto:dev.mailer.daemon@gmail.com")
+          }
+        >
+          <Text style={styles.contactLink}>
+            dev.mailer.daemon@gmail.com
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => Linking.openURL("https://www.mailerdaemon.in")}
+        >
+          <Text style={styles.contactLink}>
+            https://mailer-daemon.vercel.app
+          </Text>
+        </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -93,7 +132,10 @@ const AboutUs = () => {
 };
 
 const SocialIcon = ({ icon, color, onPress }) => (
-  <TouchableOpacity style={[styles.socialButton, { backgroundColor: color }]} onPress={onPress}>
+  <TouchableOpacity
+    style={[styles.socialButton, { backgroundColor: color }]}
+    onPress={onPress}
+  >
     <FontAwesome5 name={icon} size={26} color="#fff" />
   </TouchableOpacity>
 );
@@ -157,14 +199,13 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
-    //marginTop: 15,
     marginBottom: 10,
   },
   socialRow: {
     flexDirection: "row",
     justifyContent: "center",
     width: "80%",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   socialButton: {
     width: 50,
@@ -173,6 +214,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 10,
+  },
+  contactTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+    marginTop: 20,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  contactText: {
+    fontSize: 16,
+    color: COLORS.TEXT_SECONDARY,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  contactLink: {
+    fontSize: 16,
+    color: COLORS.ORANGE,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 6,
   },
 });
 

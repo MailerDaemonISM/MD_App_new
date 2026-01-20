@@ -12,7 +12,7 @@ import {
   ScrollView,
   Share
 } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
@@ -234,7 +234,7 @@ const PlacementList = () => {
           <Icon name="bookmark-border" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Icon name="share" size={20} color="#333" onPress={() => onShare(item)} />
+          <Icon name="share-social-outline" size={20} color="#333" onPress={() => onShare(item)} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="info" size={20} color="#333" />
@@ -359,6 +359,7 @@ const styles = StyleSheet.create({
   picker: {
     width: 150,
     backgroundColor: "#fff",
+      color: "#333",   
   },
   card: {
   flexDirection: "row",

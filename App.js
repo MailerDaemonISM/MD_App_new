@@ -3,11 +3,10 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createStackNavigator } from "@react-navigation/stack";
-
 import MDPosts from "./Screens/MDPosts";
 import MDHashtags from "./Screens/MDHashtags";
 import AboutUs from "./Screens/AboutUS";
-import ContactUs from "./Screens/ContactUs";
+import ImportantContacts from "./Screens/ImportantContacts";
 import MDLostnFound from "./Screens/MDLost&Found";
 import Placementor from "./Screens/Placementor";
 import Details from "./Screens/Details";
@@ -16,7 +15,7 @@ import CampusMap from "./Screens/CampusMap";
 import UserScreen from "./Screens/UserScreen";
 import Clubs from "./Screens/clubs";
 
-import SignInScreen from "./app/auth/sign-in";
+import SignInScreen from "./Screens/sign-in";
 
 import { ClerkProvider, SignedIn, SignedOut } from "@clerk/clerk-expo";
 import { tokenCache } from "./utils/cache";
@@ -24,11 +23,12 @@ import CustomDrawerContent from "./Screens/CustomDrawer";
 import HomeScreen from "./Screens/HomeScreen";
 
 import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View,StatusBar } from "react-native";
 
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
+
 
 // Drawer navigator for signed-in users
 function DrawerNavigator() {
@@ -49,7 +49,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
       <Drawer.Screen name="Placementor" component={Placementor} />
       <Drawer.Screen name="UserScreen" component={UserScreen} options={{ title: "Saved Posts" }} />
-      <Drawer.Screen name="ContactUs" component={ContactUs} />
+      <Drawer.Screen name="ImportantContacts" component={ImportantContacts} />
       <Drawer.Screen name="AboutUs" component={AboutUs} />
       <Drawer.Screen name="Details" component={Details} />
     </Drawer.Navigator>
@@ -72,6 +72,8 @@ export default function App() {
       tokenCache={tokenCache}
     >
       <NavigationContainer>
+      <StatusBar style="dark" backgroundColor="#ffffff" />
+
 
         <ClerkLoading>
           <View

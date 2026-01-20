@@ -28,7 +28,9 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
-  
+  const route = useRoute();
+  const postId = route.params?.postId;
+
 
   // Clerk auth user
   const { isSignedIn, user } = useUser();
@@ -195,6 +197,7 @@ const HomeScreen = () => {
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search posts..."
+            placeholderTextColor="#666" 
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchBox}
