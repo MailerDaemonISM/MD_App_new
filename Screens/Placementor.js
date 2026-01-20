@@ -52,49 +52,20 @@ const fetchPlacementData = async (year) => {
 };
 
 // Share button handler
-import { buildShareText } from "../utils/shareText";
-
-const onShare = async (post) => {
-  try {
-    let message = buildShareText(post);
-
-    // If no body-style text exists, fall back to placement-specific details
-    if (!message || !message.trim()) {
-      const company = post.company_name || post.name || 'Company';
-      const role = post.role || 'Role';
-      const year = post.year ? `Year: ${post.year}` : '';
-
-      // Selected candidates may be stored in different properties; handle common cases
-      let selectedText = '';
-      if (post.selectedCandidates) {
-        selectedText = Array.isArray(post.selectedCandidates)
-          ? `Selected: ${post.selectedCandidates.join(', ')}`
-          : `Selected: ${String(post.selectedCandidates)}`;
-      } else if (post.selected) {
-        selectedText = Array.isArray(post.selected)
-          ? `Selected: ${post.selected.join(', ')}`
-          : `Selected: ${String(post.selected)}`;
-      } else if (post.candidates) {
-        selectedText = Array.isArray(post.candidates)
-          ? `Selected: ${post.candidates.join(', ')}`
-          : `Selected: ${String(post.candidates)}`;
-      } else if (post.name && post.company_name) {
-        // If the item is itself a selected candidate, include the candidate name
-        selectedText = `Candidate: ${post.name}`;
-      }
-
-      message = `${company} - ${role}${year ? '\n' + year : ''}${selectedText ? '\n' + selectedText : ''}`;
+  const onShare = async (post) => {
+    try {
+      await Share.share({
+        title: post.title,
+        message:
+          `${post.title}\n\n${
+            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
+            "No content available"
+          }\n\nShared via Mailer Daemon`,
+      });
+    } catch (error) {
+      console.error("Error sharing post:", error);
     }
-
-    await Share.share({ message });
-  } catch (error) {
-    console.error("Error sharing post:", error);
-  }
-};
-
-const getUserSpecificKey = (userId) => {
-  return `placementBookmarks_${userId}`;
-};
+  };
 
 const PlacementList = () => {
   const [placements, setPlacements] = useState([]);
@@ -207,7 +178,7 @@ const PlacementList = () => {
         name.includes(text.toLowerCase()) ||
         companyName.includes(text.toLowerCase()) ||
         role.includes(text.toLowerCase());
-
+  
 
       const eligibleBranches = item.eligible_branch
         ? item.eligible_branch.toLowerCase().split(",")
@@ -259,34 +230,17 @@ const PlacementList = () => {
         <Text>Year : {item.year}</Text>
       </View>
       <View style={styles.iconsContainer}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => toggleBookmark(item)}
-        >
-          <Icon
-            name={bookmarkedPosts.some(post =>
-              post.id === (item._id || `placement_${item.company_name}_${item.year}`) ||
-              post._id === item._id
-            ) ? "bookmark" : "bookmark-outline"}
-            size={20}
-            color="#333"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() =>
-            Linking.openURL(
-              "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
-            )
-          }
-        >
-          <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="bookmark-border" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="share-social-outline" size={20} color="#333" onPress={() => onShare(item)} />
         </TouchableOpacity>
-        {/* <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton}>
           <Icon name="info" size={20} color="#333" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="open-in-new" size={20} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
           <Icon name="open-in-new" size={20} color="#333" />
@@ -408,33 +362,33 @@ const styles = StyleSheet.create({
       color: "#333",   
   },
   card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginVertical: 8,
-    marginHorizontal: 10,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)", // light subtle border
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3, // Android shadow
-    alignItems: "center",
-  },
+  flexDirection: "row",
+  backgroundColor: "#fff",
+  borderRadius: 12,
+  marginVertical: 8,
+  marginHorizontal: 10,
+  overflow: "hidden",
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.05)", // light subtle border
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3, // Android shadow
+  alignItems: "center",
+},
 
-  companyLogo: {
-    width: 100, // slightly smaller to match thin style
-    height: 100,
-    resizeMode: "contain",
-    marginLeft: 8,
-  },
+ companyLogo: {
+  width: 100, // slightly smaller to match thin style
+  height: 100,
+  resizeMode: "contain",
+  marginLeft: 8,
+},
   cardContent: {
-    flex: 1,
-    marginLeft: 12,
-    paddingVertical: 8,
-  },
+  flex: 1,
+  marginLeft: 12,
+  paddingVertical: 8,
+},
   title: {
     fontSize: 16,
     fontWeight: "bold",
@@ -447,14 +401,14 @@ const styles = StyleSheet.create({
   cardcontainer: {
     padding: 20,
   },
-  iconsContainer: {
-    flexDirection: "column",
-    backgroundColor: "#98DDFF",
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    padding: 5,
-    justifyContent: "center",
-  },
+ iconsContainer: {
+  flexDirection: "column",
+  backgroundColor: "#98DDFF",
+  borderTopRightRadius: 12,
+  borderBottomRightRadius: 12,
+  padding: 5,
+  justifyContent: "center",
+},
   iconButton: {
     padding: 10,
     alignItems: "center",
