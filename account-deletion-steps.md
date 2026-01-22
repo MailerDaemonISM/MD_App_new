@@ -1,7 +1,7 @@
 Account Deletion Policy
 
-Users can request deletion of their account and associated data by contacting:
-support@yourapp.com
+Users can request deletion of their account and associated data by emailing us at:
+dev.mailer.daemon@gmail.com
 
 Upon request, we delete:
 - OAuth user identifier
