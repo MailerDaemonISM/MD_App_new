@@ -113,32 +113,54 @@ const HomeScreen = () => {
 
 
   // Fetch ALL posts once and set up periodic checking
-  const fetchAllPosts = async () => {
-    setIsLoading(true);
-    try {
-      const query = `*[_type == "post"] | order(_createdAt desc) {
-        _id,
-        title,
-        body,
-        images[]{asset->{url}},
-        _createdAt,
-        hashtags[]->{ _id, hashtag }
-      }`;
-      const result = await client.fetch(query);
-      setAllPosts(result);
-      setVisiblePosts(result.slice(0, postsPerPage));
+ const fetchAllPosts = async () => {
+  setIsLoading(true);
 
-      // Check for new posts and notify users
-      const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
-      const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-      await checkAndNotifyNewPosts(result, isToggleOn);
-    } catch (error) {
-      console.error("❌ Error fetching posts:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    const query = `*[_type == "post"] | order(_createdAt desc) {
+      _id,
+      title,
+      body,
+      images[]{asset->{url}},
+      _createdAt,
+      hashtags[]->{ _id, hashtag }
+    }`;
 
+    const result = await client.fetch(query);
+
+    const NOW = Date.now();
+    const time_delay = 24 * 60 * 60 * 1000;
+
+    const filteredResult = result.filter((post) => {
+      const hasLostAndFound = post.hashtags?.some(
+        (tag) => tag.hashtag === "#MDLostAndFound"
+      );
+
+      if (!hasLostAndFound) return true;
+
+      const postAge = NOW - new Date(post._createdAt).getTime();
+
+      return postAge < time_delay
+;
+    });
+
+    setAllPosts(filteredResult);
+    setVisiblePosts(filteredResult.slice(0, postsPerPage));
+
+    const toggleState = await AsyncStorage.getItem(
+      "@notification_toggle_enabled"
+    );
+    const isToggleOn =
+      toggleState !== null ? JSON.parse(toggleState) : true;
+
+    await checkAndNotifyNewPosts(filteredResult, isToggleOn);
+
+  } catch (error) {
+    console.error("❌ Error fetching posts:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
   // Background notification check function
   const checkPostsInBackground = async () => {
     try {
