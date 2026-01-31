@@ -111,7 +111,7 @@ export default function SignInScreen() {
     try {
       // Logic: Generate redirect for both Expo Go and Production APK automatically
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: "appmailerdaemon",
+        scheme: "mdapp",
         path: "oauth-native-callback",
       });
 

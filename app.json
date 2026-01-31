@@ -34,8 +34,7 @@
           "action": "VIEW",
           "category": ["BROWSABLE", "DEFAULT"],
           "data": [
-            { "scheme": "appmailerdaemon" },
-            { "scheme": "https", "host": "clerk.appmailerdaemon.online" }
+            { "scheme": "appmailerdaemon" }
           ]
         }
       ]
