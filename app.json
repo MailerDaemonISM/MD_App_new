@@ -4,7 +4,7 @@
     "slug": "md-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "owner": "mailer-daemon", 
+    "owner": "mailer-daemon",
     "icon": "./assets/md_logo.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -45,7 +45,8 @@
           "sounds": [],
           "mode": "production"
         }
-      ]
+      ],
+      "expo-router"
     ],
     "extra": {
       "eas": {
