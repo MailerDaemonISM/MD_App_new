@@ -97,10 +97,10 @@ android {
     }
     signingConfigs {
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            storeFile file("$rootDir/app/@mailer-daemon__md-app.jks")
+            storePassword 'b48ec51479f3dca84e40ac8b6c50c1e5'
+            keyAlias 'f006c3780b0ba04a751ec6779cadc8bb'
+            keyPassword 'e8233320ffaf4738ca3c52234ddb382e'
         }
         release {
             storeFile file("$rootDir/app/@mailer-daemon__md-app.jks")

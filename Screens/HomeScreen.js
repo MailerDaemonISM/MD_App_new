@@ -37,6 +37,7 @@ import { Animated } from "react-native";
 import * as Notifications from 'expo-notifications';
 import { useRoute } from "@react-navigation/native"; 
 import { getPostById,getPosts } from "../api/post";
+import { fetchSanityUserId } from '../sanity.js'; // Adjust the path to your file
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -301,10 +302,14 @@ const handleShare = async (post) => {
 
   // toggle bookmark button
   const handleBookmark = async (postId, clerkId) => {
+    console.log(clerkId);
     if (!clerkId) return;
     try {
       const userDoc = await fetchSanityUserId(clerkId);
-      const sanityUserId = userDoc?._id;
+      console.log("passed");
+      console.log(userDoc);
+      const sanityUserId = userDoc;
+      console.log(sanityUserId)
       if (!sanityUserId) return;
 
       const alreadySaved = bookmarkedPosts.has(postId);

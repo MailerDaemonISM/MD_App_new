@@ -64,12 +64,13 @@ function AuthStack() {
     </Stack.Navigator>
   );
 }
+const clerkFrontendApi = "auth.appmailerdaemon.online";
 
 export default function App() {
   return (
     <ClerkProvider
-      publishableKey="pk_test_YWRlcXVhdGUtcGFuZ29saW4tNzYuY2xlcmsuYWNjb3VudHMuZGV2JA"
-      tokenCache={tokenCache}
+      publishableKey="pk_live_Y2xlcmsuYXBwbWFpbGVyZGFlbW9uLm9ubGluZSQ"
+      frontendApi={clerkFrontendApi}
     >
       <NavigationContainer>
       <StatusBar style="dark" backgroundColor="#ffffff" />

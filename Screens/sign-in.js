@@ -1,5 +1,4 @@
-// screens/SignInScreen.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -8,12 +7,17 @@ import {
   Image,
   ActivityIndicator,
   LogBox,
-  Alert,
   SafeAreaView,
   StatusBar,
   Dimensions,
+  Platform,
+  Alert,
 } from "react-native";
 
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
+import { useSSO, useSignIn } from "@clerk/clerk-expo";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -22,12 +26,23 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 
-import { useOAuth, useSignIn } from "@clerk/clerk-expo";
-
 const { height, width } = Dimensions.get("window");
 
 // Suppress Clerk hydration warnings
 LogBox.ignoreAllLogs();
+
+// Browser warming for Android performance
+export const useWarmUpBrowser = () => {
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+};
+
+WebBrowser.maybeCompleteAuthSession();
 
 const COLORS = {
   LIGHT_PINK: "#FFC5C5",
@@ -40,12 +55,14 @@ const COLORS = {
   BACKGROUND: "#FFFFFF",
 };
 
-export default function () {
-  const { isLoaded } = useSignIn();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
-
+export default function SignInScreen() {
+  useWarmUpBrowser();
+  
+  const { isLoaded: signInLoaded } = useSignIn();
+  const { startSSOFlow } = useSSO(); // Modern SSO Hook
   const [loading, setLoading] = useState(false);
 
+  // Animation values
   const logoOpacity = useSharedValue(0);
   const logoScale = useSharedValue(0.6);
   const glowY1 = useSharedValue(0);
@@ -87,42 +104,52 @@ export default function () {
     transform: [{ translateX: glowX2.value }],
   }));
 
-  const onGoogleSignInPress = async () => {
-    if (!isLoaded) return;
+  const onGoogleSignInPress = useCallback(async () => {
+    if (!signInLoaded) return;
     setLoading(true);
 
     try {
-      const { createdSessionId, setActive } = await startOAuthFlow();
+      // Logic: Generate redirect for both Expo Go and Production APK automatically
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: "appmailerdaemon",
+        path: "oauth-native-callback",
+      });
 
-      if (createdSessionId) {
-        await setActive?.({ session: createdSessionId });
-        router.replace("/home");
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl,
+      });
+
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        // Navigation should happen automatically if you have an auth listener
       }
-    }catch (err) {
-  console.log("Authentication deferred → Clerk still hydrating:", err?.message);
-} finally {
-  setLoading(false);
-}
+    } catch (err) {
+      console.error("SSO Error:", JSON.stringify(err, null, 2));
+      Alert.alert("Authentication Error", "Could not complete Google Sign-In.");
+    } finally {
+      setLoading(false);
+    }
+  }, [signInLoaded, startSSOFlow]);
 
-  };
+  if (!signInLoaded) {
+    return (
+      <View style={[styles.container, { justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={COLORS.ORANGE_CTA} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <SafeAreaView style={styles.safeArea}>
-        <Animated.View
-          style={[styles.glowShape, styles.glowShape1, glow1Style]}
-        />
-        <Animated.View
-          style={[styles.glowShape, styles.glowShape2, glow2Style]}
-        />
+        <Animated.View style={[styles.glowShape, styles.glowShape1, glow1Style]} />
+        <Animated.View style={[styles.glowShape, styles.glowShape2, glow2Style]} />
 
         <View style={styles.content}>
           <Animated.View style={[styles.logoCard, logoStyle]}>
-            <Image
-              source={require("../assets/md_logo.png")}
-              style={styles.logo}
-            />
+            <Image source={require("../assets/md_logo.png")} style={styles.logo} />
           </Animated.View>
 
           <Text style={styles.heading}>Welcome to</Text>
@@ -137,7 +164,6 @@ export default function () {
             {loading ? (
               <ActivityIndicator color={COLORS.WHITE} />
             ) : (
-              
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             )}
           </TouchableOpacity>
@@ -164,7 +190,6 @@ const styles = StyleSheet.create({
     width: "85%",
     zIndex: 10,
   },
-
   logoCard: {
     padding: 28,
     borderRadius: 35,
@@ -181,7 +206,6 @@ const styles = StyleSheet.create({
     height: 150,
     resizeMode: "contain",
   },
-
   heading: {
     fontSize: 22,
     color: COLORS.TEXT_SECONDARY,
@@ -199,7 +223,6 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
     marginBottom: 50,
   },
-
   googleButton: {
     backgroundColor: COLORS.ORANGE_CTA,
     paddingVertical: 16,
@@ -219,7 +242,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     color: COLORS.TEXT_SECONDARY,
   },
-
   glowShape: {
     position: "absolute",
     borderRadius: 999,
