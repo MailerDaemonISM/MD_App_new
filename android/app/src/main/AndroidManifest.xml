@@ -32,11 +32,11 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="mdapp"/>
         <data android:scheme="exp+md-app"/>
+        <data android:scheme="appmailerdaemon"/>
       </intent-filter>
       <intent-filter data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="https" android:host="mdapp.com" android:pathPrefix="/post"/>
-        <data android:scheme="exp+md-app"/>
+        <data android:scheme="appmailerdaemon"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>

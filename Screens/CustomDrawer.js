@@ -66,7 +66,7 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("AcademicCalendar")}
             />
             <NavItem
-              source={require("../assets/Map.jpg")}
+              source={require("../assets/campus.png")}
               label="Campus Map"
               onPress={() => props.navigation.navigate("map")}
             />
@@ -82,7 +82,7 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("MDLostnFound")}
             />
             <NavItem
-              source={{ uri: "https://cdn-icons-png.flaticon.com/512/3135/3135768.png" }}
+              source={require("../assets/job-offer.png")}
               label="Placementor"
               onPress={() => props.navigation.navigate("Placementor")}
             />
@@ -90,6 +90,16 @@ const CustomDrawerContent = (props) => {
               source={require("../assets/save-instagram.png")}
               label="Saved Posts"
               onPress={() => props.navigation.navigate("UserScreen")}
+            />
+            <NavItem
+              source={require("../assets/cv.png")}
+              label="Resume Tester"
+              onPress={() => props.navigation.navigate("ATS")}
+            />
+            <NavItem
+              source={require("../assets/cv.png")}
+              label="Track Toto"
+              onPress={() => props.navigation.navigate("Track Toto")}
             />
           </View>
 
@@ -115,7 +125,7 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("AboutUs")}
             />
             <NavItem
-              source={require("../assets/contactUs.png")}
+              source={require("../assets/contact-mail.png")}
               label="Important Contacts"
               onPress={() => props.navigation.navigate("ImportantContacts")}
             />

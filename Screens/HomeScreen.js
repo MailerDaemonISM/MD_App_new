@@ -15,7 +15,10 @@ import {
   Image,
   StyleSheet,
   BackHandler,
-  Alert
+  Alert,
+  RefreshControl,
+  Animated,
+  Linking
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
@@ -26,18 +29,14 @@ import { hashtags as hashtagData } from "./hashtags";
 import { useUser } from "@clerk/clerk-expo";
 import { setUserIfNotExists } from "../api/user";
 import NotificationButton from "../components/notification";
-import { Linking } from "react-native";
 import { buildShareText } from "../utils/shareText";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useCallback } from "react";
 import { checkAndNotifyNewPosts } from "../utils/postNotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RefreshControl } from "react-native";
-import { Animated } from "react-native";
 import * as Notifications from 'expo-notifications';
-import { useRoute } from "@react-navigation/native"; 
-import { getPostById,getPosts } from "../api/post";
-import { fetchSanityUserId } from '../sanity.js'; // Adjust the path to your file
+import { getPostById, getPosts } from "../api/post";
+import { fetchSanityUserId } from '../sanity.js';
 
 const hashtagColorMap = hashtagData.reduce((map, tag) => {
   map[tag.title] = tag.color;
@@ -58,461 +57,222 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
+  
   const route = useRoute();
   const postId = route.params?.postId;
-
-
-  // Clerk auth user
   const { isSignedIn, user } = useUser();
-  useEffect(() => {
-  const syncUserWithSanity = async () => {
-    if (!isSignedIn || !user) return;
 
-    const userData = {
-      clerkId: user.id,
-      email: user.primaryEmailAddress?.emailAddress || "",
-      name: user.fullName || "",
-      username: user.username || user.firstName || "user",
-      image: user.imageUrl || "",
-    };
-
-    try {
-      await setUserIfNotExists(userData);
-    } catch (error) {
-      console.error("Error syncing user with Sanity:", error.message);
-    }
+  // Helper to ensure post arrays are unique by _id
+  const getUniquePosts = (posts) => {
+    const uniqueMap = new Map();
+    posts.forEach(post => {
+      if (post && post._id) uniqueMap.set(post._id, post);
+    });
+    return Array.from(uniqueMap.values());
   };
 
-  syncUserWithSanity();
-}, [isSignedIn, user]);
+  // Sync User
+  useEffect(() => {
+    const syncUserWithSanity = async () => {
+      if (!isSignedIn || !user) return;
+      const userData = {
+        clerkId: user.id,
+        email: user.primaryEmailAddress?.emailAddress || "",
+        name: user.fullName || "",
+        username: user.username || user.firstName || "user",
+        image: user.imageUrl || "",
+      };
+      try {
+        await setUserIfNotExists(userData);
+      } catch (error) {
+        console.error("Error syncing user with Sanity:", error.message);
+      }
+    };
+    syncUserWithSanity();
+  }, [isSignedIn, user]);
 
-  // Fetch user bookmarks
+  // Fetch bookmarks
   useFocusEffect(
     useCallback(() => {
       const fetchUserBookmarks = async () => {
         if (!isSignedIn || !user) return;
         try {
-          const query = `*[_type=="user" && clerkId==$clerkId][0]{
-          saved_post[]->{ _id }
-        }`;
+          const query = `*[_type=="user" && clerkId==$clerkId][0]{ saved_post[]->{ _id } }`;
           const data = await client.fetch(query, { clerkId: user.id });
-          if (data?.saved_post) {
-            setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
-          } else {
-            setBookmarkedPosts(new Set());
-          }
+          setBookmarkedPosts(new Set(data?.saved_post?.map((p) => p._id) || []));
         } catch (err) {
           console.error("Error fetching user bookmarks:", err);
         }
       };
-
       fetchUserBookmarks();
     }, [isSignedIn, user])
   );
 
-
-  // Fetch ALL posts once and set up periodic checking
-  const fetchAllPosts = async () => {
-    setIsLoading(true);
+  // Main Fetch logic with Duplicate Prevention
+  const fetchAllPosts = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const query = `*[_type == "post"] | order(_createdAt desc) {
-        _id,
-        title,
-        body,
-        images[]{asset->{url}},
-        _createdAt,
-        hashtags[]->{ _id, hashtag }
+        _id, title, body, images[]{asset->{url}}, _createdAt, hashtags[]->{ _id, hashtag }
       }`;
       const result = await client.fetch(query);
-      setAllPosts(result);
-      setVisiblePosts(result.slice(0, postsPerPage));
+      const uniqueResult = getUniquePosts(result);
 
-      // Check for new posts and notify users
+      setAllPosts(uniqueResult);
+      setVisiblePosts(uniqueResult.slice(0, postsPerPage));
+
       const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
       const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-      await checkAndNotifyNewPosts(result, isToggleOn);
+      await checkAndNotifyNewPosts(uniqueResult, isToggleOn);
     } catch (error) {
       console.error("❌ Error fetching posts:", error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
-  // Background notification check function
-  const checkPostsInBackground = async () => {
-    try {
-      const query = `*[_type == "post"] | order(_createdAt desc) {
-        _id,
-        title,
-        body,
-        images[]{asset->{url}},
-        _createdAt,
-        hashtags[]->{ _id, hashtag }
-      }`;
-      const result = await client.fetch(query);
-
-      // Get toggle state
-      const toggleState = await AsyncStorage.getItem('@notification_toggle_enabled');
-      const isToggleOn = toggleState !== null ? JSON.parse(toggleState) : true;
-
-      // Check for new posts and notify
-      const hasNewPost = await checkAndNotifyNewPosts(result, isToggleOn);
-
-      // If there's a new post, update the UI when app comes back to focus
-      if (hasNewPost) {
-        setAllPosts(result);
-        setVisiblePosts(result.slice(0, postsPerPage));
-        setCurrentPage(1);
-      }
-    } catch (error) {
-      console.error("❌ Error checking for new posts in background:", error);
-    }
-  };
-
+  // Periodic Check (Increased interval to 30s for performance)
   useEffect(() => {
-    // Initial fetch
     fetchAllPosts();
-
-    // Set up periodic checking for new posts every 3 seconds
-    const intervalId = setInterval(async () => {
-      await checkPostsInBackground();
-    }, 3000); // Check every 3 seconds
-
-    // Cleanup on unmount
-    return () => {
-      clearInterval(intervalId);
-    };
+    const intervalId = setInterval(() => fetchAllPosts(false), 30000);
+    return () => clearInterval(intervalId);
   }, []);
 
-  //Backhandle 
-  useFocusEffect(
-  useCallback(() => {
-    const onBackPress = () => {
-      // Show only on HomeScreen
-      Alert.alert(
-        "Exit App",
-        "Are you sure you want to exit?",
-        [
-          { text: "Cancel", style: "cancel", onPress: () => null },
-          { text: "YES", onPress: () => BackHandler.exitApp() }
-        ],
-        { cancelable: true }
-      );
-      return true; // Stop default behavior
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      onBackPress
-    );
-
-    return () => subscription.remove();
-  }, [])
-);
-
-
-
-  // Handle notification press to navigate to post
+  // Handle postId from Navigation/Deep Link
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const postId = response.notification.request.content.data.postId;
-
-      if (postId) {
-        // Find the post in allPosts
-        const post = allPosts.find(p => p._id === postId);
-
-        if (post) {
-          // Set the selected post to open the modal
-          setSelectedPost(post);
-          console.log('Navigating to post:', postId);
-        }
-      }
-    });
-
-    return () => subscription.remove();
-  }, [allPosts]);
-
-  // Pull-to-refresh handler with limit
-  const onRefresh = useCallback(async () => {
-    try {
-      const today = new Date().toDateString();
-      const storedData = await AsyncStorage.getItem('@refresh_limit');
-      let currentCount = 0;
-
-      if (storedData) {
-        const { date, count } = JSON.parse(storedData);
-        currentCount = date === today ? count : 0;
-      }
-
-      // Check if limit reached
-      if (currentCount >= 5) {
-        return;
-      }
-
-      // Increment refresh count
-      const newCount = currentCount + 1;
-      await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: newCount }));
-
-      setRefreshing(true);
-      await fetchAllPosts();
-      setRefreshing(false);
-    } catch (error) {
-      console.error("Error during refresh:", error);
-      setRefreshing(false);
+    if (postId) {
+      getPostById(postId)
+        .then((post) => {
+          if (post) {
+            setSelectedPost(post);
+            setAllPosts(prev => getUniquePosts([post, ...prev]));
+            setVisiblePosts(prev => getUniquePosts([post, ...prev]));
+          }
+        })
+        .catch(console.error);
     }
+  }, [postId]);
+
+  // Back Handler
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert("Exit App", "Are you sure you want to exit?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "YES", onPress: () => BackHandler.exitApp() }
+        ]);
+        return true;
+      };
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const today = new Date().toDateString();
+    const storedData = await AsyncStorage.getItem('@refresh_limit');
+    let { date, count } = storedData ? JSON.parse(storedData) : { date: today, count: 0 };
+    
+    if (date === today && count >= 5) {
+      setRefreshing(false);
+      return;
+    }
+
+    await AsyncStorage.setItem('@refresh_limit', JSON.stringify({ date: today, count: count + 1 }));
+    await fetchAllPosts();
+    setRefreshing(false);
   }, []);
 
-  // Load more posts locally
   const loadMorePosts = () => {
+    if (searchQuery || selectedHashtag !== "All") return;
     const nextPage = currentPage + 1;
     const start = (nextPage - 1) * postsPerPage;
     const end = nextPage * postsPerPage;
-    const newPosts = allPosts.slice(start, end);
+    const nextSet = allPosts.slice(start, end);
 
-    if (newPosts.length > 0) {
-      setVisiblePosts((prev) => [...prev, ...newPosts]);
+    if (nextSet.length > 0) {
+      setVisiblePosts(prev => getUniquePosts([...prev, ...nextSet]));
       setCurrentPage(nextPage);
     }
   };
-useEffect(() => {
-  if (postId) {
-    getPostById(postId)
-      .then((post) => {
-        if (post) {
-          setAllPosts([post]); // render only this post
-          setVisiblePosts([post]);
-          setSelectedPost(post); // open modal / view directly
-        }
-      })
-      .catch(console.error);
-  } else {
-    getPosts().then(setAllPosts);
-  }
-}, [postId]);
 
-// share
-const handleShare = async (post) => {
-  try {
-    const message = buildShareText(post);
-    await Share.share({ message });
-  } catch (error) {
-    console.error("Error sharing post:", error);
-  }
-};
+  const handleShare = async (post) => {
+    try {
+      const message = buildShareText(post);
+      await Share.share({ message });
+    } catch (error) {
+      console.error("Error sharing post:", error);
+    }
+  };
 
-  // toggle bookmark button
   const handleBookmark = async (postId, clerkId) => {
-    console.log(clerkId);
     if (!clerkId) return;
     try {
-      const userDoc = await fetchSanityUserId(clerkId);
-      console.log("passed");
-      console.log(userDoc);
-      const sanityUserId = userDoc;
-      console.log(sanityUserId)
+      const sanityUserId = await fetchSanityUserId(clerkId);
       if (!sanityUserId) return;
 
       const alreadySaved = bookmarkedPosts.has(postId);
-
-      // Optimistic UI update
       setBookmarkedPosts((prev) => {
         const updated = new Set(prev);
-        if (alreadySaved) updated.delete(postId);
-        else updated.add(postId);
+        alreadySaved ? updated.delete(postId) : updated.add(postId);
         return updated;
       });
 
-      if (alreadySaved) {
-        // Remove bookmark in Sanity
-        await client
-          .patch(sanityUserId)
-          .unset([`saved_post[_ref=="${postId}"]`])
-          .commit();
-      } else {
-        // Add bookmark in Sanity
-        await client
-          .patch(sanityUserId)
-          .setIfMissing({ saved_post: [] })
-          .append("saved_post", [{ _type: "reference", _ref: postId }])
-          .commit();
-      }
+      const patch = client.patch(sanityUserId);
+      alreadySaved 
+        ? await patch.unset([`saved_post[_ref=="${postId}"]`]).commit()
+        : await patch.setIfMissing({ saved_post: [] }).append("saved_post", [{ _type: "reference", _ref: postId }]).commit();
     } catch (error) {
       console.error("Error toggling bookmark:", error);
     }
   };
 
-  // Render each post item
   const renderItem = ({ item }) => {
     const description = Array.isArray(item.body)
-      ? item.body
-        .map((block) =>
-          Array.isArray(block.children)
-            ? block.children.map((child) => child.text).join("")
-            : ""
-        )
-        .join("\n\n")
-      : typeof item.body === "string"
-        ? item.body
-        : "";
+      ? item.body.map(b => b.children?.map(c => c.text).join("")).join("\n\n")
+      : item.body || "";
 
-    const descriptionWords = description.split(/\s+/);
-    const description2 =
-      descriptionWords.length > 20
-        ? descriptionWords.slice(0, 20).join(" ") + "..."
-        : description;
-
-    const firstTag = item.hashtags?.[0]?.hashtag;
-    const sideBarColor = hashtagColorMap[firstTag] || "#ddd";
-    const hasImages = Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
+    const descriptionPreview = description.split(/\s+/).slice(0, 20).join(" ") + (description.split(/\s+/).length > 20 ? "..." : "");
+    const sideBarColor = hashtagColorMap[item.hashtags?.[0]?.hashtag] || "#ddd";
+    const hasImages = item.images?.length > 0;
 
     return (
       <TouchableOpacity onPress={() => setSelectedPost(item)}>
-        <View
-          style={[
-            styles.cardContainer,
-            hasImages && { paddingBottom: 0 },
-          ]}
-        >
-          {/* --------card CONTENT ---------- */}
-          <View style={[styles.cardTextContainer]}>
-            <Text style={styles.cardTitle}>{item.title.length > 100 ? item.title.slice(0, 100) + "..." : item.title}</Text>
+        <View style={[styles.cardContainer, hasImages && { paddingBottom: 0 }]}>
+          <View style={styles.cardTextContainer}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text numberOfLines={2} style={styles.cardDescription}>{descriptionPreview || "No content"}</Text>
 
-            <Text numberOfLines={2} style={styles.cardDescription}>
-              {description2 || "No content available"}
-            </Text>
-
-            {/* ---------- IMAGES ROW ---------- */}
             {hasImages && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={[{ marginTop: 10 }, { marginBottom: 6 }]}
-                pagingEnabled
-                contentContainerStyle={{ paddingRight: 16 }}
-                decelerationRate="fast"
-              >
-                {item.images.map((img, idx) => {
-                  const imageUrl = img?.asset?.url;
-                  if (!imageUrl) return null;
-
-                  // If there are more than 3 images and we're at index 2, show "+X more" overlay
-                  if (idx === 2 && item.images.length > 3) {
-                    return (
-                      <View key={idx} style={{ position: "relative", marginRight: 1 }}>
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "#fff",
-                          }}
-                          resizeMode="contain"
-                        />
-                        <View
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "rgba(0,0,0,0.5)",
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-                            +{item.images.length - 3}
-                          </Text>
-                        </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
+                {item.images.slice(0, 3).map((img, idx) => (
+                  <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+                    <Image source={{ uri: img.asset.url }} style={{ width: 70, height: 70, borderRadius: 10 }} />
+                    {idx === 2 && item.images.length > 3 && (
+                      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, justifyContent: 'center', alignItems: 'center' }]}>
+                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>+{item.images.length - 3}</Text>
                       </View>
-                    );
-                  }
-
-                  // Only show first 3 images (0, 1, 2)
-                  if (idx > 2) return null;
-
-                  return (
-                    <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            backgroundColor: "rgba(240, 240, 240, 0.8)",
-                          }}
-                          resizeMode="contain"
-                        />
-                        <View
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: 70,
-                            height: 70,
-                            borderRadius: 10,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                        </View>
-                      </View>
-                  );
-                })}
-
-
+                    )}
+                  </View>
+                ))}
               </ScrollView>
             )}
 
-            {/* ---------- footer ---------- */}
             <View style={styles.cardFooter}>
-              <Text style={styles.cardLabel}>
-                {item.hashtags?.length
-                  ? item.hashtags.map((t) => t.hashtag).join(", ")
-                  : "No hashtags"}
-              </Text>
-              <Text style={styles.cardTime}>
-                {new Date(item._createdAt).toLocaleString()}
-              </Text>
+              <Text style={styles.cardLabel}>{item.hashtags?.map(t => t.hashtag).join(", ") || "No hashtags"}</Text>
+              <Text style={styles.cardTime}>{new Date(item._createdAt).toLocaleDateString()}</Text>
             </View>
           </View>
 
-          {/* ---------- sidebar---------- */}
-          <View
-            style={[
-              styles.sideBarContainer,
-              {
-                backgroundColor: sideBarColor,
-                //alignSelf: "stretch", 
-                justifyContent: "space-around",
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => handleBookmark(item._id, user?.id)}
-            >
-              <Icon
-                name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"}
-                size={20}
-                color="#333"
-              />
+          <View style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}>
+            <TouchableOpacity onPress={() => handleBookmark(item._id, user?.id)} style={styles.iconButton}>
+              <Icon name={bookmarkedPosts.has(item._id) ? "bookmark" : "bookmark-outline"} size={20} color="#333" />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() =>
-                Linking.openURL(
-                  "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
-                )
-              }
-            >
+            <TouchableOpacity onPress={() => Linking.openURL("https://instagram.com/...")} style={styles.iconButton}>
               <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconButton} onPress={() => handleShare(item)}>
+            <TouchableOpacity onPress={() => handleShare(item)} style={styles.iconButton}>
               <Icon name="share-social-outline" size={20} color="#333" />
             </TouchableOpacity>
           </View>
@@ -521,222 +281,74 @@ const handleShare = async (post) => {
     );
   };
 
-
-  // Filter by search and hashtag
-  const filteredPosts = allPosts.filter((post) => {
-    const matchesSearch = (post.title || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesHashtag =
-      selectedHashtag === "All" ||
-      post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
-    return matchesSearch && matchesHashtag;
+  const filteredPosts = allPosts.filter(post => {
+    const matchesSearch = post.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag = selectedHashtag === "All" || post.hashtags?.some(t => t.hashtag === selectedHashtag);
+    return matchesSearch && matchesTag;
   });
 
-  //all posts should be rendered
-  const postsToRender =
-    searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
+  const postsToRender = (searchQuery || selectedHashtag !== "All") ? filteredPosts : visiblePosts;
+  const allHashtags = Array.from(new Set(allPosts.flatMap(p => p.hashtags?.map(t => t.hashtag) || [])));
 
-  const allHashtags = Array.from(
-    new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
-  );
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
+        <Text style={styles.headerTitle}>Mailer Daemon</Text>
         <View style={styles.headerRightIcons}>
-          <TouchableOpacity
-            onPress={() => setSearchVisible(!searchVisible)}
-            style={styles.iconButton}
-          >
-            <Icon name="search-outline" size={26} color="#333" />
-          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSearchVisible(!searchVisible)}><Icon name="search-outline" size={26} /></TouchableOpacity>
           <NotificationButton />
         </View>
       </View>
 
-      {/* Search bar */}
       {searchVisible && (
         <View style={styles.searchContainer}>
-          <TextInput
-            placeholder="Search posts..."
-            placeholderTextColor="#666" 
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchBox}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery("")}
-              style={styles.clearButton}
-            >
-              <Icon name="close" size={22} color="#777" />
-            </TouchableOpacity>
-          )}
+          <TextInput placeholder="Search..." value={searchQuery} onChangeText={setSearchQuery} style={styles.searchBox} />
         </View>
       )}
 
-      {/* Loading state */}
-      {isLoading && visiblePosts.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#333" />
-        </View>
+      {isLoading && postsToRender.length === 0 ? (
+        <ActivityIndicator style={{ marginTop: 20 }} />
       ) : (
         <Animated.FlatList
           data={postsToRender}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          onEndReachedThreshold={0.5}
-          onEndReached={
-            !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
-          }
-          ListFooterComponent={
-            !searchQuery && selectedHashtag === "All" && isLoading ? (
-              <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color="#333" />
-                <Text>Loading more posts...</Text>
-              </View>
-            ) : null
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#ff6b6b" // iOS spinner color
-              colors={["#ff6b6b", "#feca57", "#1dd1a1"]} // Android spinner colors
-              progressBackgroundColor="#fff"
-            />
-          }
-          scrollEventThrottle={16}
+          onEndReached={loadMorePosts}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
 
-      {/* Floating Hashtag Button */}
-      <FloatingButton
-        hashtags={allHashtags}
-        selectedHashtag={selectedHashtag}
-        onSelectHashtag={setSelectedHashtag}
-      />
+      <FloatingButton hashtags={allHashtags} selectedHashtag={selectedHashtag} onSelectHashtag={setSelectedHashtag} />
 
-      {/* Post Modal */}
-      <Modal
-        visible={!!selectedPost}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectedPost(null)}
-      >
+      <Modal visible={!!selectedPost} animationType="slide" transparent onRequestClose={() => setSelectedPost(null)}>
         <View style={styles.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedPost(null)}
-          />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedPost(null)} />
           <View style={styles.modalContent}>
-            <ScrollView
-              contentContainerStyle={{ paddingBottom: 30 }}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
+            <ScrollView>
               <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-
-              {/* Images Carousel */}
-              {selectedPost?.images?.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  pagingEnabled
-                  decelerationRate="fast"
-                  snapToInterval={260}
-                  nestedScrollEnabled
-                  style={{ marginVertical: 10 }}
-                >
-                  {selectedPost.images.map((img, idx) => {
-                    const imageUrl = img?.asset?.url;
-                    if (!imageUrl) return null;
-
-                    return (
-                      <TouchableOpacity
-                        key={idx}
-                        onPress={() => {
-                          setImageViewerIndex(idx);
-                          setIsImageViewerVisible(true);
-                        }}
-                      >
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 250,
-                            aspectRatio: 1,
-                            borderRadius: 10,
-                            marginRight: 10,
-                          }}
-                          resizeMode="contain"
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              )}
-
-              {/* Post Content */}
+              {selectedPost?.images?.map((img, i) => (
+                <TouchableOpacity key={i} onPress={() => {setImageViewerIndex(i); setIsImageViewerVisible(true);}}>
+                  <Image source={{ uri: img.asset.url }} style={{ width: '100%', height: 200, marginBottom: 10, borderRadius: 10 }} />
+                </TouchableOpacity>
+              ))}
               <Text style={styles.modalDescription}>
-                {Array.isArray(selectedPost?.body)
-                  ? selectedPost.body
-                    .map((block) =>
-                      Array.isArray(block.children)
-                        ? block.children.map((child) => child.text).join("")
-                        : ""
-                    )
-                    .join("\n\n")
-                  : typeof selectedPost?.body === "string"
-                    ? selectedPost.body
-                    : "No content available"}
-              </Text>
-
-              {/* Hashtags */}
-              <Text style={styles.modalHashtags}>
-                {selectedPost?.hashtags?.length
-                  ? selectedPost.hashtags
-                    .map((tag) => `${tag.hashtag}`)
-                    .join("\n")
-                  : "No hashtags"}
-              </Text>
-
-              {/* Timestamp */}
-              <Text style={styles.modalTime}>
-                {new Date(selectedPost?._createdAt).toLocaleString()}
+                {Array.isArray(selectedPost?.body) ? selectedPost.body.map(b => b.children?.map(c => c.text).join("")).join("\n\n") : selectedPost?.body}
               </Text>
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {refreshing && (
-        <View
-          style={{
-            position: "absolute",
-            top: -60,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-          }}
-        >
-          <Ionicons name="refresh" size={40} color="#4A90E2" />
-        </View>
-      )}
-
-      {selectedPost?.images?.length > 0 && (
+      {isImageViewerVisible && (
         <ImageViewing
-          images={selectedPost.images.map(img => ({ uri: img.asset.url }))}
+          images={selectedPost?.images?.map(img => ({ uri: img.asset.url })) || []}
           imageIndex={imageViewerIndex}
           visible={isImageViewerVisible}
           onRequestClose={() => setIsImageViewerVisible(false)}
-          presentationStyle="overFullScreen"
         />
       )}
     </View>
   );
-
 };
 
 export default HomeScreen;

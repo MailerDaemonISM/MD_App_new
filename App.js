@@ -12,6 +12,7 @@ import Placementor from "./Screens/Placementor";
 import Details from "./Screens/Details";
 import AcademicCalendar from "./Screens/AcadCal";
 import CampusMap from "./Screens/CampusMap";
+import ATSScreen from "./Screens/ATS";
 import UserScreen from "./Screens/UserScreen";
 import Clubs from "./Screens/clubs";
 
@@ -24,6 +25,7 @@ import HomeScreen from "./Screens/HomeScreen";
 
 import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
 import { ActivityIndicator, View,StatusBar } from "react-native";
+import TrackingScreen from "./Screens/TrackingScreen";
 
 
 const Drawer = createDrawerNavigator();
@@ -52,6 +54,8 @@ function DrawerNavigator() {
       <Drawer.Screen name="ImportantContacts" component={ImportantContacts} />
       <Drawer.Screen name="AboutUs" component={AboutUs} />
       <Drawer.Screen name="Details" component={Details} />
+      <Drawer.Screen name="Track Toto" component={TrackingScreen} />
+      <Drawer.Screen name="ATS" component={ATSScreen} />
     </Drawer.Navigator>
   );
 }
