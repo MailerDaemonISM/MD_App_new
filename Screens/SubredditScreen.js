@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
+  Animated,
   TouchableOpacity,
   StyleSheet,
+  Pressable,
   Modal,
   TextInput,
   Alert,
@@ -30,6 +35,7 @@ const { width } = Dimensions.get('window');
 const UPVOTE_ICON = require('../assets/upvote.png');
 const SHARE_ICON = require('../assets/share.png');
 const CHAT_ICON = require('../assets/chat.png');
+const MENU = require('../assets/dots.png')
 
 // --- UTILITY: RELATIVE TIME ---
 const getTimeAgo = (dateString) => {
@@ -157,6 +163,11 @@ const nestComments = (list) => {
 };
 
 export default function RedditScreen() {
+  const navigation = useNavigation();
+  const [showGuidelines, setShowGuidelines] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const { user } = useUser();
   const topListRef = useRef(null);
   const queryClient = useQueryClient();
@@ -179,6 +190,27 @@ export default function RedditScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [parentComment, setParentComment] = useState(null);
+
+  //check community guidelines only once
+  useEffect(() => {
+    const checkGuidelines = async () => {
+      const accepted = await AsyncStorage.getItem("guidelinesAccepted");
+      if (!accepted) {
+        setShowGuidelines(true);
+      }
+    };
+    checkGuidelines();
+  }, []);
+
+  const handleAccept = async () => {
+    await AsyncStorage.setItem("guidelinesAccepted", "true");
+    setShowGuidelines(false);
+  };
+
+  const handleDecline = () => {
+    setShowGuidelines(true);
+    navigation.navigate("HomeScreen"); // Or whatever your main landing screen is
+  };
 
   // Scroll to top when subreddit changes
   useEffect(() => {
@@ -263,6 +295,7 @@ export default function RedditScreen() {
     }
   });
 
+  // DELETE Logic
   const handleDeletePress = (postId) => {
     Alert.alert("Delete Post", "Are you sure? This cannot be undone.", [
       { text: "Cancel", style: "cancel" },
@@ -351,6 +384,22 @@ export default function RedditScreen() {
     }
   };
 
+  // const handleBlockUser = async (userIdToBlock) => {
+  //   // ... (inside your Alert/Confirm logic)
+  //   const blocked = await AsyncStorage.getItem("blockedUsers");
+  //   const blockedList = blocked ? JSON.parse(blocked) : [];
+
+  //   if (!blockedList.includes(userIdToBlock)) {
+  //     const updatedList = [...blockedList, userIdToBlock];
+  //     await AsyncStorage.setItem("blockedUsers", JSON.stringify(updatedList));
+
+  //     // CRUCIAL: Update the local state so the UI re-renders instantly
+  //     setBlockedUsers(updatedList);
+
+  //     Alert.alert("User Blocked", "The feed has been updated.");
+  //   }
+  // };
+
   const handleDeleteComment = (id) => {
     Alert.alert("Delete", "Remove this comment?", [
       { text: "Cancel", style: "cancel" },
@@ -395,8 +444,216 @@ export default function RedditScreen() {
     }
   };
 
+
+  const submitReport = async (postId) => {
+    try {
+      const { error } = await supabase
+        .from('user_reviews')
+        .insert([
+          {
+            post_id: postId,
+            reporter_id: user.id
+          }
+        ]);
+
+      if (error) throw error;
+
+      Alert.alert(
+        "Report Submitted",
+        "Team Mailer Daemon will review your report request take necessary actions within 24 hours. Thanks for keeping the community safe!"
+      );
+    } catch (err) {
+      Alert.alert("Error", "Could not submit report. Please try again later.");
+      console.error(err);
+    }
+  };
+
+  const handleReportPress = (postId) => {
+    Alert.alert(
+      "Report Post",
+      "Are you sure you want to report this content for violating community guidelines?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Report",
+          style: "destructive",
+          onPress: () => submitReport(postId)
+        }
+      ]
+    );
+  };
+
+
+  const handleMenuPress = (item) => {
+    const isOwner = item.user_id === user.id;
+
+    const options = [
+      {
+        text: "Report Post",
+        onPress: () => handleReportPress(item.id),
+        style: "default",
+      },
+    ];
+
+    // Add Delete option ONLY if the user owns the post
+    if (isOwner) {
+      options.unshift({
+        text: "Delete Post",
+        onPress: () => handleDeletePress(item.id),
+        style: "destructive",
+      });
+    }
+
+    options.push({ text: "Cancel", style: "cancel" });
+
+    Alert.alert("Post Options", "What would you like to do?", options);
+  };
+
+  const handleBlockUser = async (userIdToBlock) => {
+    try {
+      const blocked = await AsyncStorage.getItem("blockedUsers");
+      let blockedList = blocked ? JSON.parse(blocked) : [];
+
+      if (!blockedList.includes(userIdToBlock)) {
+        const updatedList = [...blockedList, userIdToBlock];
+
+        // 1. Save to Storage (Persistent)
+        await AsyncStorage.setItem("blockedUsers", JSON.stringify(updatedList));
+
+        // 2. Update State (Immediate UI change)
+        setBlockedUsers(updatedList);
+
+        Alert.alert("Success", "User blocked. Feed updated.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const [isBlockManagerVisible, setIsBlockManagerVisible] = useState(false);
+
+  const handlePlusPress = () => {
+    Alert.alert(
+      "Quick Actions",
+      "Select an option",
+      [
+        { text: "📝 Create a Post", onPress: () => setModalVisible(true) },
+        { text: "🚫 Manage Blocked Users", onPress: () => setIsBlockManagerVisible(true) },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
+  const [isOpen, setIsOpen] = useState(false);
+  const animation = useRef(new Animated.Value(0)).current;
+
+  const toggleMenu = () => {
+    const toValue = isOpen ? 0 : 1;
+
+    Animated.spring(animation, {
+      toValue,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+
+    setIsOpen(!isOpen);
+  };
+
+  // Define how the buttons fly out
+  const getButtonStyle = (index) => ({
+    transform: [
+      { scale: animation },
+      {
+        translateY: animation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -70 * index - 10], // Spacing between buttons
+        }),
+      },
+    ],
+    opacity: animation,
+  });
+
+  const [blockedUsers, setBlockedUsers] = useState([]);
+
+  const unblockUser = async (userIdToUnblock) => {
+    try {
+      // 1. Filter out the ID from the current list
+      const updatedList = blockedUsers.filter(id => id !== userIdToUnblock);
+
+      // 2. Update Local State (This triggers the UI/Feed refresh)
+      setBlockedUsers(updatedList);
+
+      // 3. Update Persistent Storage
+      await AsyncStorage.setItem("blockedUsers", JSON.stringify(updatedList));
+
+      // 4. Optional: Feedback to user
+      // Alert.alert("Success", "User unblocked"); 
+    } catch (error) {
+      console.error("Failed to unblock user:", error);
+    }
+  };
+
+  useEffect(() => {
+    const loadBlocked = async () => {
+      const blocked = await AsyncStorage.getItem("blockedUsers");
+      if (blocked) setBlockedUsers(JSON.parse(blocked));
+    };
+    loadBlocked();
+  }, []);
+
+  // Inside your RedditScreen function
+  const visiblePosts = useMemo(() => {
+    if (!posts) return [];
+
+    return posts.filter(post => {
+      // Convert both to strings to ensure '123' matches 123
+      const postAuthorId = String(post.user_id);
+      const isBlocked = blockedUsers.some(blockedId => String(blockedId) === postAuthorId);
+
+      return !isBlocked;
+    });
+  }, [posts, blockedUsers]); // This re-runs the instant blockedUsers changes
+
   return (
     <SafeAreaView style={styles.container}>
+      <Modal visible={showGuidelines} transparent={true} animationType="fade">
+        <View style={styles.guidelineOverlay}>
+          <View style={styles.guidelineContainer}>
+
+            {/* Centered Brand Icon */}
+            <View style={styles.brandIcon}>
+              <Text style={{ fontSize: 40 }}>🛡️</Text>
+            </View>
+
+            <Text style={styles.guidelineTitle}>Community Guidelines</Text>
+            <Text style={styles.guidelineSubtitle}>Please review our protocols to continue</Text>
+
+            <View style={styles.rulesList}>
+              {[
+                { icon: "🚫", text: "No Abusive or Hateful Content" },
+                { icon: "🔞", text: "Strictly No Sexual Content" },
+                { icon: "⚖️", text: "Zero Discrimination (Race/Caste/Origin)" },
+                { icon: "⚠️", text: "No Destructive Criticism or Harassment" },
+                { icon: "👨‍💻", text: "Admin Authority to Moderate/Delete" }
+              ].map((rule, index) => (
+                <View key={index} style={styles.ruleItem}>
+                  <Text style={styles.ruleIcon}>{rule.icon}</Text>
+                  <Text style={styles.ruleText}>{rule.text}</Text>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept}>
+              <Text style={styles.acceptBtnText}>I Understand & Agree</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.declineBtn} onPress={handleDecline}>
+              <Text style={styles.declineBtnText}>Go Back</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
 
       {/* HEADER */}
@@ -505,10 +762,10 @@ export default function RedditScreen() {
       {/* FEED */}
       {loadingPosts ? (
         <ActivityIndicator style={{ marginTop: 0 }} color="#0079D3" />
-      ) : posts && posts.length > 0 ? (
+      ) : visiblePosts && visiblePosts.length > 0 ? (
         <FlatList
           ref={flatListRef}
-          data={posts}
+          data={visiblePosts}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF4500" />}
@@ -525,7 +782,9 @@ export default function RedditScreen() {
               >
                 {/* Inside your Card Header or Footer */}
                 <View style={styles.cardHeader}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
+
+                    {/* Left Side: Avatar and Info */}
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <View style={styles.subAvatar}>
                         <Text style={styles.subAvatarText}>{item.subreddits?.slug[0].toUpperCase()}</Text>
@@ -539,15 +798,19 @@ export default function RedditScreen() {
                       </View>
                     </View>
 
-                    {/* DELETE BUTTON - Visible only if it's the user's post */}
-                    {item.user_id === user.id && (
-                      <TouchableOpacity
-                        onPress={() => handleDeletePress(item.id)}
-                        style={styles.deletePostBtn}
-                      >
-                        <Text style={{ fontSize: 18 }}>🗑️</Text>
-                      </TouchableOpacity>
-                    )}
+                    {/* Right Side: Three Dots Menu */}
+                    <TouchableOpacity
+                      onPress={(event) => {
+                        const { pageY } = event.nativeEvent;
+                        setSelectedItem(item);
+                        setMenuPosition({ top: pageY + 10, right: 20 });
+                        setMenuVisible(true);
+                      }}
+                      style={{ padding: 10, marginRight: -5 }} // Increased hit slop for better touch
+                    >
+                      <Image source={MENU} style={[styles.assetIcon, { width: 18, height: 18 }]} />
+                    </TouchableOpacity>
+
                   </View>
                 </View>
 
@@ -627,9 +890,51 @@ export default function RedditScreen() {
         <Text style={[styles.identityFabText, isAnonymous && { color: '#FFF' }]}>{isAnonymous ? 'Anon' : 'Public'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+      <View style={styles.fabContainer}>
+
+        {/* Option: Manage Blocked Users */}
+        <Animated.View style={[styles.secondaryButton, getButtonStyle(2)]}>
+          <TouchableOpacity
+            style={styles.innerButton}
+            onPress={() => { toggleMenu(); setIsBlockManagerVisible(true); }}
+          >
+            <Text style={styles.buttonLabel}>Blocked Users</Text>
+            <Text style={styles.iconText}>🚫</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Option: Create Post */}
+        <Animated.View style={[styles.secondaryButton, getButtonStyle(1)]}>
+          <TouchableOpacity
+            style={styles.innerButton}
+            onPress={() => { toggleMenu(); setModalVisible(true); }}
+          >
+            <Text style={styles.buttonLabel}>New Post</Text>
+            <Text style={styles.iconText}>📝</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Main Toggle Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={toggleMenu}
+          style={styles.mainFab}
+        >
+          <Animated.Text style={[
+            styles.plusText,
+            {
+              transform: [{
+                rotate: animation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '45deg'] // Turns + into x
+                })
+              }]
+            }
+          ]}>
+            +
+          </Animated.Text>
+        </TouchableOpacity>
+      </View>
 
       {/* CREATE MODAL */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
@@ -720,6 +1025,92 @@ export default function RedditScreen() {
                 <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        transparent={true}
+        visible={menuVisible}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        {/* The Pressable backdrop handles "touching away" */}
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.menuOverlay, { top: menuPosition.top, right: menuPosition.right }]}>
+            {selectedItem?.user_id === user.id && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleDeletePress(selectedItem.id);
+                }}
+              >
+                <Text style={[styles.menuText, { color: 'red' }]}>Delete Post</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                handleReportPress(selectedItem.id);
+              }}
+            >
+              <Text style={styles.menuText}>Report Post</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                handleBlockUser(selectedItem.user_id); // This works even if 'is_anonymous' is true
+              }}
+            >
+              <Text style={styles.menuText}>Block User</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={isBlockManagerVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsBlockManagerVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.blockManagerSheet}>
+            {/* Header */}
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Blocked Accounts</Text>
+              <TouchableOpacity onPress={() => setIsBlockManagerVisible(false)}>
+                <Text style={styles.closeText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.sheetSub}>Restoring a user will show their posts in your feed again.</Text>
+
+            {/* List of Blocked Users */}
+            <FlatList
+              data={blockedUsers} // Uses the state we filtered with
+              keyExtractor={(item) => item}
+              style={{ marginTop: 10 }}
+              renderItem={({ item }) => (
+                <View style={styles.blockedUserRow}>
+                  <Text style={styles.blockedIdText}>User {item.slice(0, 8)}...</Text>
+                  <TouchableOpacity
+                    onPress={() => unblockUser(item)}
+                    style={styles.restoreBtn}
+                  >
+                    <Text style={styles.restoreText}>Restore</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>You haven't blocked anyone yet.</Text>
+              }
+            />
           </View>
         </View>
       </Modal>
@@ -924,6 +1315,252 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, // Tighter padding for 3-button support
     paddingVertical: 8,
     height: 54,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)', // Very subtle dimming
+  },
+  menuOverlay: {
+    position: 'absolute',
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    width: 150,
+    paddingVertical: 5,
+    // Shadow for elevation
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  guidelineOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guidelineContainer: {
+    width: '85%',
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    maxHeight: '70%',
+  },
+  guidelineEmoji: { fontSize: 40, marginBottom: 10 },
+  guidelineTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+  guidelineScroll: { marginBottom: 20 },
+  guidelineText: { fontSize: 15, color: '#555', lineHeight: 22 },
+  acceptBtn: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  acceptBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  declineBtn: { paddingVertical: 10 },
+  declineBtnText: { color: '#888', fontSize: 14 },
+  guidelineOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guidelineContainer: {
+    width: '88%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 30,
+    paddingVertical: 40,
+    alignItems: 'center',
+    // Premium Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  brandIcon: {
+    marginBottom: 20,
+  },
+  guidelineTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  guidelineSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  rulesList: {
+    width: '100%',
+    marginBottom: 35,
+  },
+  ruleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 10,
+  },
+  ruleIcon: {
+    fontSize: 18,
+    marginRight: 15,
+  },
+  ruleText: {
+    fontSize: 15,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+  acceptBtn: {
+    backgroundColor: '#000', // Solid black for a premium feel
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 14,
+    width: '100%',
+    alignItems: 'center',
+  },
+  acceptBtnText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  declineBtn: {
+    marginTop: 20,
+  },
+  declineBtnText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)', // Dims the background
+    justifyContent: 'flex-end', // Aligns the sheet to the bottom
+  },
+  blockManagerSheet: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 25,
+    height: '60%', // Covers half the screen
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111',
+  },
+  sheetSub: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+  },
+  closeText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  blockedUserRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  blockedIdText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  restoreBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  restoreText: {
+    color: '#0F172A',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    marginTop: 40,
+    fontSize: 15,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    alignItems: 'center',
+  },
+  mainFab: {
+    backgroundColor: '#0F172A',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  plusText: {
+    color: 'white',
+    fontSize: 30,
+    fontWeight: '300',
+  },
+  secondaryButton: {
+    position: 'absolute',
+    width: 160, // Width to accommodate label + icon
+    height: 50,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  innerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 4,
+  },
+  buttonLabel: {
+    marginRight: 10,
+    fontWeight: '600',
+    color: '#334155',
+    fontSize: 14,
+  },
+  iconText: {
+    fontSize: 18,
   },
 });
 
