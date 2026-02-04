@@ -1,5 +1,7 @@
 // screens/SignInScreen.js
 import React, { useState, useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
+
 import {
   Text,
   TouchableOpacity,
@@ -41,6 +43,7 @@ const COLORS = {
 };
 
 export default function () {
+    const navigation = useNavigation();
   const { isLoaded } = useSignIn();
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
@@ -96,7 +99,9 @@ export default function () {
 
       if (createdSessionId) {
         await setActive?.({ session: createdSessionId });
-        router.replace("/home");
+        // router.replace("/home");
+       
+
       }
     }catch (err) {
   console.log("Authentication deferred → Clerk still hydrating:", err?.message);

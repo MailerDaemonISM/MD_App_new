@@ -1,18 +1,42 @@
 // HomeScreen.js
-import { useEffect, useRef, useState } from "react";
+import { useRoute, useFocusEffect } from "@react-navigation/native";
+
+import { useEffect, useRef, useState,useCallback } from "react";
 import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
+import { useUser } from "@clerk/clerk-expo";
+
+// import {
+//   View,
+//   Text,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   Share, // <-- import Share API
+// } from "react-native";
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Share, // <-- import Share API
+  Share,
+  StyleSheet, 
+  Animated,  
+  RefreshControl,
+   TextInput,
+  Modal,
+  Pressable,
+  ScrollView,
+  Image,// ✅ ADD THIS
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
+
+const setUserIfNotExists = async () => {
+  // temporarily disabled
+};
+
 
 const HomeScreen = () => {
   const [allPosts, setAllPosts] = useState([]);
@@ -47,7 +71,7 @@ const HomeScreen = () => {
     };
 
     try {
-      await setUserIfNotExists(userData);
+      // await setUserIfNotExists(userData);
     } catch (error) {
       console.error("Error syncing user with Sanity:", error.message);
     }
@@ -97,12 +121,17 @@ const HomeScreen = () => {
       setAllPosts(result);
       setVisiblePosts(result.slice(0, postsPerPage));
 
-      if (result.length > 0) {
-        setPosts((prevPosts) => [...prevPosts, ...result]);
-        setCurrentPage((prevPage) => prevPage + 1);
-      } else {
-        setHasMorePosts(false);
-      }
+      // if (result.length > 0) {
+      //   setPosts((prevPosts) => [...prevPosts, ...result]);
+      //   setCurrentPage((prevPage) => prevPage + 1);
+      // } else {
+      //   setHasMorePosts(false);
+      // }
+setAllPosts(result);
+setVisiblePosts(result.slice(0, postsPerPage));
+
+
+
     } catch (error) {
       console.error("❌ Error fetching posts:", error);
     } finally {
@@ -125,46 +154,49 @@ const HomeScreen = () => {
       console.error("Error sharing post:", error);
     }
   };
+const renderItem = ({ item }) => (
+  <View style={styles.cardContainer}>
+    {/* Card Left Side */}
+    <TouchableOpacity style={styles.cardTextContainer}>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardCategory}>Category</Text>
 
-  const renderItem = ({ item }) => (
-    <View style={styles.cardContainer}>
-      {/* Card Left Side */}
-      <View style={styles.cardTextContainer}>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardCategory}>Category</Text>
-        <Text
-          style={styles.cardDescription}
-          numberOfLines={3}
-          ellipsizeMode="tail"
-        >
-          {item.body?.[0]?.children?.map((child) => child.text).join(" ") ||
-            "No content available"}
-        </Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardLabel}>Campus Daemon</Text>
-          <Text style={styles.cardTime}>Just now</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+      <Text
+        style={styles.cardDescription}
+        numberOfLines={3}
+        ellipsizeMode="tail"
+      >
+        {item.body?.[0]?.children
+          ?.map((child) => child.text)
+          .join(" ") || "No content available"}
+      </Text>
 
-      {/* Colored Bar + Icons */}
-      <View style={[styles.sideBarContainer, { backgroundColor: "#FFC5C5" }]}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="bookmark-outline" size={20} color="#333" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => onShare(item)} // <-- share handler
-        >
-          <Icon name="share-social-outline" size={20} color="#333" />
-        </TouchableOpacity>
+      <View style={styles.cardFooter}>
+        <Text style={styles.cardLabel}>Campus Daemon</Text>
+        <Text style={styles.cardTime}>Just now</Text>
       </View>
+    </TouchableOpacity>
+
+    {/* Colored Bar + Icons */}
+    <View style={[styles.sideBarContainer, { backgroundColor: "#FFC5C5" }]}>
+      <TouchableOpacity style={styles.iconButton}>
+        <Icon name="bookmark-outline" size={20} color="#333" />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.iconButton}>
+        <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.iconButton}
+        onPress={() => onShare(item)}
+      >
+        <Icon name="share-social-outline" size={20} color="#333" />
+      </TouchableOpacity>
     </View>
-  );
+  </View>
+);
+
 
   // Filter by search and hashtag
   const filteredPosts = allPosts.filter((post) => {
@@ -184,6 +216,31 @@ const HomeScreen = () => {
   const allHashtags = Array.from(
     new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
+
+const loadMorePosts = () => {
+  if (isLoading) return;
+
+  const nextPage = currentPage + 1;
+  const start = (nextPage - 1) * postsPerPage;
+  const end = start + postsPerPage;
+
+  const nextPosts = allPosts.slice(start, end);
+
+  if (nextPosts.length > 0) {
+    setVisiblePosts(prev => [...prev, ...nextPosts]);
+    setCurrentPage(nextPage);
+  }
+};
+
+
+const onRefresh = async () => {
+  setRefreshing(true);
+  await fetchAllPosts();
+  setRefreshing(false);
+};
+
+
+
   return (
     <View style={styles.container}>
       {/* Header */}

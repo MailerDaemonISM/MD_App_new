@@ -23,7 +23,9 @@ import CustomDrawerContent from "./Screens/CustomDrawer";
 import HomeScreen from "./Screens/HomeScreen";
 
 import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
-import { ActivityIndicator, View,StatusBar } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+
 
 
 const Drawer = createDrawerNavigator();
