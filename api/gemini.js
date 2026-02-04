@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI("YOUR_API_KEY");
+const genAI = new GoogleGenerativeAI("AIzaSyD-BCixf8U1uacVOyeVwHSRSFlf4BliCgk");
 const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
 async function getResumeScore(resumeText, jobDescription) {

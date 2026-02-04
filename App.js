@@ -35,6 +35,8 @@ const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
 
 
+
+
 // Drawer navigator for signed-in users
 function DrawerNavigator() {
   return (
@@ -58,7 +60,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="AboutUs" component={AboutUs} />
       <Drawer.Screen name="Details" component={Details} />
       <Drawer.Screen name="Track Toto" component={TrackingScreen} />
-      <Drawer.Screen name="reddit" component={SubredditScreen} />
+      <Drawer.Screen name="ISM Diaries" component={SubredditScreen} />
       <Drawer.Screen name="ATS" component={ATSScreen} />
     </Drawer.Navigator>
   );
@@ -94,6 +96,7 @@ console.log("init2");
       <ClerkProvider
         publishableKey="pk_live_Y2xlcmsuYXBwbWFpbGVyZGFlbW9uLm9ubGluZSQ"
         frontendApi={clerkFrontendApi}
+        tokenCache={tokenCache}
       >
         <NavigationContainer>
           <StatusBar style="dark" backgroundColor="#ffffff" />

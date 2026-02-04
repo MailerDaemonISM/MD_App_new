@@ -71,9 +71,9 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("map")}
             />
             <NavItem
-              source={require("../assets/campus.png")}
-              label="Reddit"
-              onPress={() => props.navigation.navigate("reddit")}
+              source={require("../assets/reddit-logo.png")}
+              label="ISM Diaries"
+              onPress={() => props.navigation.navigate("ISM Diaries")}
             />
             <NavItem
               source={require("../assets/clubs.png")}
@@ -96,16 +96,16 @@ const CustomDrawerContent = (props) => {
               label="Saved Posts"
               onPress={() => props.navigation.navigate("UserScreen")}
             />
-            <NavItem
+            {/* <NavItem
               source={require("../assets/cv.png")}
               label="Resume Tester"
               onPress={() => props.navigation.navigate("ATS")}
-            />
-            <NavItem
+            /> */}
+            {/* <NavItem
               source={require("../assets/cv.png")}
               label="Track Toto"
               onPress={() => props.navigation.navigate("Track Toto")}
-            />
+            /> */}
           </View>
 
           {/* Institute Links */}

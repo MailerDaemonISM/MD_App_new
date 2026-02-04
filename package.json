@@ -63,6 +63,7 @@
     "expo-router": "~5.1.11",
     "expo-secure-store": "~14.2.4",
     "expo-updates": "~0.28.17",
+    "expo-video": "~2.2.2",
     "expo-web-browser": "~14.2.0",
     "nativewind": "^4.1.23",
     "react": "19.0.0",

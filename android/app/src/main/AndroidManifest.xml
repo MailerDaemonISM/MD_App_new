@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -30,13 +32,13 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="mdapp"/>
+        <data android:scheme="appmailerdaemon"/>
         <data android:scheme="exp+md-app"/>
-        <data android:scheme="appmailerdaemon"/>
       </intent-filter>
-      <intent-filter data-generated="true">
+      <intent-filter android:autoVerify="true" data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="appmailerdaemon"/>
+        <data android:scheme="https" android:host="appmailerdaemon.online" android:pathPrefix="/post"/>
+        <data android:scheme="http" android:host="appmailerdaemon.online" android:pathPrefix="/post"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>

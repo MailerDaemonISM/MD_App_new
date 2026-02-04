@@ -7,7 +7,13 @@
     "owner": "mailer-daemon",
     "icon": "./assets/md_logo.png",
     "userInterfaceStyle": "light",
-    "scheme": "appmailerdaemon",
+    "scheme": [
+      "appmailerdaemon",
+      "mdapp"
+    ],
+    "associatedDomains": [
+      "applinks:appmailerdaemon.online"
+    ],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -32,13 +38,21 @@
       "intentFilters": [
         {
           "action": "VIEW",
+          "autoVerify": true,
           "category": [
             "BROWSABLE",
             "DEFAULT"
           ],
           "data": [
             {
-              "scheme": "appmailerdaemon"
+              "scheme": "https",
+              "host": "appmailerdaemon.online",
+              "pathPrefix": "/post/.*"
+            },
+            {
+              "scheme": "http",
+              "host": "appmailerdaemon.online",
+              "pathPrefix": "/post/.*"
             }
           ]
         }
@@ -89,7 +103,8 @@
           }
         }
       ],
-      "expo-router"
+      "expo-router",
+      "expo-video"
     ],
     "extra": {
       "eas": {
