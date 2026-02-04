@@ -1,42 +1,42 @@
 // HomeScreen.js
 import { useRoute, useFocusEffect } from "@react-navigation/native";
-
-import { useEffect, useRef, useState,useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@clerk/clerk-expo";
-
-// import {
-//   View,
-//   Text,
-//   TouchableOpacity,
-//   ActivityIndicator,
-//   Share, // <-- import Share API
-// } from "react-native";
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
   Share,
-  StyleSheet, 
-  Animated,  
+  StyleSheet,
+  Animated,
   RefreshControl,
-   TextInput,
+  TextInput,
   Modal,
   Pressable,
   ScrollView,
-  Image,// ✅ ADD THIS
+  Image,
+  FlatList,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
+import { hashtags as hashtagData } from "./hashtags";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Linking } from "react-native";
 
-const setUserIfNotExists = async () => {
-  // temporarily disabled
+// Create hashtag color map
+const hashtagColorMap = hashtagData.reduce((map, tag) => {
+  map[tag.title] = tag.color;
+  return map;
+}, {});
+
+const getUserSpecificKey = (userId) => {
+  return `postBookmarks_${userId}`;
 };
-
 
 const HomeScreen = () => {
   const [allPosts, setAllPosts] = useState([]);
@@ -48,6 +48,7 @@ const HomeScreen = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
+  const [userDocId, setUserDocId] = useState(null);
   const postsPerPage = 5;
   const [refreshing, setRefreshing] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
@@ -55,41 +56,20 @@ const HomeScreen = () => {
   const route = useRoute();
   const postId = route.params?.postId;
 
-
-  // Clerk auth user
   const { isSignedIn, user } = useUser();
-  useEffect(() => {
-  const syncUserWithSanity = async () => {
-    if (!isSignedIn || !user) return;
 
-    const userData = {
-      clerkId: user.id,
-      email: user.primaryEmailAddress?.emailAddress || "",
-      name: user.fullName || "",
-      username: user.username || user.firstName || "user",
-      image: user.imageUrl || "",
-    };
-
-    try {
-      // await setUserIfNotExists(userData);
-    } catch (error) {
-      console.error("Error syncing user with Sanity:", error.message);
-    }
-  };
-
-  syncUserWithSanity();
-}, [isSignedIn, user]);
-
-  // Fetch user bookmarks
+  // Fetch user bookmarks and document ID
   useFocusEffect(
     useCallback(() => {
       const fetchUserBookmarks = async () => {
         if (!isSignedIn || !user) return;
         try {
           const query = `*[_type=="user" && clerkId==$clerkId][0]{
-          saved_post[]->{ _id }
-        }`;
+            _id,
+            saved_post[]->{ _id }
+          }`;
           const data = await client.fetch(query, { clerkId: user.id });
+          setUserDocId(data?._id);
           if (data?.saved_post) {
             setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
           } else {
@@ -104,8 +84,7 @@ const HomeScreen = () => {
     }, [isSignedIn, user])
   );
 
-
-  // Fetch ALL posts once and set up periodic checking
+  // Fetch ALL posts once
   const fetchAllPosts = async () => {
     setIsLoading(true);
     try {
@@ -120,18 +99,6 @@ const HomeScreen = () => {
       const result = await client.fetch(query);
       setAllPosts(result);
       setVisiblePosts(result.slice(0, postsPerPage));
-
-      // if (result.length > 0) {
-      //   setPosts((prevPosts) => [...prevPosts, ...result]);
-      //   setCurrentPage((prevPage) => prevPage + 1);
-      // } else {
-      //   setHasMorePosts(false);
-      // }
-setAllPosts(result);
-setVisiblePosts(result.slice(0, postsPerPage));
-
-
-
     } catch (error) {
       console.error("❌ Error fetching posts:", error);
     } finally {
@@ -139,64 +106,250 @@ setVisiblePosts(result.slice(0, postsPerPage));
     }
   };
 
+  useEffect(() => {
+    fetchAllPosts();
+  }, []);
+
+  // Toggle bookmark
+  const toggleBookmark = async (postId) => {
+    if (!userDocId || !user) return;
+    
+    try {
+      const isBookmarked = bookmarkedPosts.has(postId);
+      
+      // Update local state immediately
+      setBookmarkedPosts((prev) => {
+        const newSet = new Set(prev);
+        if (isBookmarked) {
+          newSet.delete(postId);
+        } else {
+          newSet.add(postId);
+        }
+        return newSet;
+      });
+
+      // Update Sanity
+      if (isBookmarked) {
+        await client
+          .patch(userDocId)
+          .unset([`saved_post[_ref=="${postId}"]`])
+          .commit();
+      } else {
+        await client
+          .patch(userDocId)
+          .setIfMissing({ saved_post: [] })
+          .append("saved_post", [{ _type: "reference", _ref: postId }])
+          .commit();
+      }
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+      // Revert on error
+      setBookmarkedPosts((prev) => {
+        const newSet = new Set(prev);
+        if (bookmarkedPosts.has(postId)) {
+          newSet.add(postId);
+        } else {
+          newSet.delete(postId);
+        }
+        return newSet;
+      });
+    }
+  };
+
   // Share button handler
   const onShare = async (post) => {
     try {
+      const bodyText = Array.isArray(post.body)
+        ? post.body
+            .map((block) =>
+              Array.isArray(block.children)
+                ? block.children.map((child) => child.text).join("")
+                : ""
+            )
+            .join("\n\n")
+        : typeof post.body === "string"
+        ? post.body
+        : "";
+
       await Share.share({
         title: post.title,
-        message:
-          `${post.title}\n\n${
-            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
-            "No content available"
-          }\n\nShared via Mailer Daemon`,
+        message: `${post.title}\n\n${bodyText}\n\nShared via Mailer Daemon`,
       });
     } catch (error) {
       console.error("Error sharing post:", error);
     }
   };
-const renderItem = ({ item }) => (
-  <View style={styles.cardContainer}>
-    {/* Card Left Side */}
-    <TouchableOpacity style={styles.cardTextContainer}>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardCategory}>Category</Text>
 
-      <Text
-        style={styles.cardDescription}
-        numberOfLines={3}
-        ellipsizeMode="tail"
-      >
-        {item.body?.[0]?.children
-          ?.map((child) => child.text)
-          .join(" ") || "No content available"}
-      </Text>
+  const renderItem = ({ item }) => {
+    const description = Array.isArray(item.body)
+      ? item.body
+          .map((block) =>
+            Array.isArray(block.children)
+              ? block.children.map((child) => child.text).join("")
+              : ""
+          )
+          .join("\n\n")
+      : typeof item.body === "string"
+      ? item.body
+      : "";
 
-      <View style={styles.cardFooter}>
-        <Text style={styles.cardLabel}>Campus Daemon</Text>
-        <Text style={styles.cardTime}>Just now</Text>
-      </View>
-    </TouchableOpacity>
+    const firstTag = item.hashtags?.[0]?.hashtag;
+    const sideBarColor = hashtagColorMap[firstTag] || "#FFC5C5";
+    const hasImages =
+      Array.isArray(item.images) && item.images.some((img) => img?.asset?.url);
+    const isBookmarked = bookmarkedPosts.has(item._id);
 
-    {/* Colored Bar + Icons */}
-    <View style={[styles.sideBarContainer, { backgroundColor: "#FFC5C5" }]}>
-      <TouchableOpacity style={styles.iconButton}>
-        <Icon name="bookmark-outline" size={20} color="#333" />
+    return (
+      <TouchableOpacity onPress={() => setSelectedPost(item)}>
+        <View
+          style={[
+            styles.cardContainer,
+            hasImages && { paddingBottom: 0 },
+          ]}
+        >
+          <View style={styles.cardTextContainer}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardCategory}>Category</Text>
+
+            <Text
+              style={styles.cardDescription}
+              numberOfLines={3}
+              ellipsizeMode="tail"
+            >
+              {description || "No content available"}
+            </Text>
+
+            {/* Horizontal image scroller */}
+            {hasImages && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 10, marginBottom: 6 }}
+                contentContainerStyle={{ paddingRight: 16 }}
+                pagingEnabled
+                decelerationRate="fast"
+              >
+                {item.images.map((img, idx) => {
+                  const imageUrl = img?.asset?.url;
+                  if (!imageUrl) return null;
+
+                  if (idx === 2 && item.images.length > 3) {
+                    return (
+                      <View
+                        key={idx}
+                        style={{ position: "relative", marginRight: 8 }}
+                      >
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "#fff",
+                          }}
+                          resizeMode="contain"
+                        />
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: 70,
+                            height: 70,
+                            borderRadius: 10,
+                            backgroundColor: "rgba(0,0,0,0.5)",
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontWeight: "bold",
+                              fontSize: 16,
+                            }}
+                          >
+                            +{item.images.length - 3}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+                  if (idx > 2) return null;
+
+                  return (
+                    <Image
+                      key={idx}
+                      source={{ uri: imageUrl }}
+                      style={{
+                        width: 70,
+                        height: 70,
+                        borderRadius: 10,
+                        marginRight: 8,
+                        backgroundColor: "#fff",
+                      }}
+                      resizeMode="contain"
+                    />
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            <View style={styles.cardFooter}>
+              <View>
+                {item.hashtags?.length ? (
+                  item.hashtags.map((t, i) => (
+                    <Text key={i} style={styles.cardLabel}>
+                      {t.hashtag}
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.cardLabel}>No hashtags</Text>
+                )}
+              </View>
+              <Text style={styles.cardTime}>
+                {new Date(item._createdAt).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+
+          {/* Colored Bar + Icons */}
+          <View
+            style={[styles.sideBarContainer, { backgroundColor: sideBarColor }]}
+          >
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => toggleBookmark(item._id)}
+            >
+              <Icon
+                name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color="#333"
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() =>
+                Linking.openURL(
+                  "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+                )
+              }
+            >
+              <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => onShare(item)}
+            >
+              <Icon name="share-social-outline" size={20} color="#333" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </TouchableOpacity>
-
-      <TouchableOpacity style={styles.iconButton}>
-        <FontAwesomeIcon5 name="facebook-f" size={20} color="#333" />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => onShare(item)}
-      >
-        <Icon name="share-social-outline" size={20} color="#333" />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
+    );
+  };
 
   // Filter by search and hashtag
   const filteredPosts = allPosts.filter((post) => {
@@ -209,7 +362,6 @@ const renderItem = ({ item }) => (
     return matchesSearch && matchesHashtag;
   });
 
-  //all posts should be rendered
   const postsToRender =
     searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
 
@@ -217,36 +369,37 @@ const renderItem = ({ item }) => (
     new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
   );
 
-const loadMorePosts = () => {
-  if (isLoading) return;
+  const loadMorePosts = () => {
+    if (isLoading) return;
 
-  const nextPage = currentPage + 1;
-  const start = (nextPage - 1) * postsPerPage;
-  const end = start + postsPerPage;
+    const nextPage = currentPage + 1;
+    const start = (nextPage - 1) * postsPerPage;
+    const end = start + postsPerPage;
 
-  const nextPosts = allPosts.slice(start, end);
+    const nextPosts = allPosts.slice(start, end);
 
-  if (nextPosts.length > 0) {
-    setVisiblePosts(prev => [...prev, ...nextPosts]);
-    setCurrentPage(nextPage);
-  }
-};
+    if (nextPosts.length > 0) {
+      setVisiblePosts((prev) => [...prev, ...nextPosts]);
+      setCurrentPage(nextPage);
+    }
+  };
 
-
-const onRefresh = async () => {
-  setRefreshing(true);
-  await fetchAllPosts();
-  setRefreshing(false);
-};
-
-
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAllPosts();
+    setRefreshing(false);
+  };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-        <View style={styles.headerRightIcons}></View>
+        <View style={styles.headerRightIcons}>
+          <TouchableOpacity onPress={() => setSearchVisible(!searchVisible)}>
+            <Icon name="search" size={24} color="#333" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search bar */}
@@ -254,7 +407,7 @@ const onRefresh = async () => {
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search posts..."
-            placeholderTextColor="#666" 
+            placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchBox}
@@ -276,7 +429,7 @@ const onRefresh = async () => {
           <ActivityIndicator size="large" color="#333" />
         </View>
       ) : (
-        <Animated.FlatList
+        <FlatList
           data={postsToRender}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
@@ -296,8 +449,8 @@ const onRefresh = async () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#ff6b6b" // iOS spinner color
-              colors={["#ff6b6b", "#feca57", "#1dd1a1"]} // Android spinner colors
+              tintColor="#ff6b6b"
+              colors={["#ff6b6b", "#feca57", "#1dd1a1"]}
               progressBackgroundColor="#fff"
             />
           }
@@ -315,20 +468,21 @@ const onRefresh = async () => {
       {/* Post Modal */}
       <Modal
         visible={!!selectedPost}
-        animationType="slide"
+        animationType="fade"
         transparent
         onRequestClose={() => setSelectedPost(null)}
       >
-        <View style={styles.modalOverlay}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setSelectedPost(null)}
+        >
           <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedPost(null)}
-          />
-          <View style={styles.modalContent}>
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <ScrollView
-              contentContainerStyle={{ paddingBottom: 30 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
               showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
             >
               <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
 
@@ -339,8 +493,7 @@ const onRefresh = async () => {
                   showsHorizontalScrollIndicator={false}
                   pagingEnabled
                   decelerationRate="fast"
-                  snapToInterval={260}
-                  nestedScrollEnabled
+                  snapToInterval={280}
                   style={{ marginVertical: 10 }}
                 >
                   {selectedPost.images.map((img, idx) => {
@@ -358,12 +511,12 @@ const onRefresh = async () => {
                         <Image
                           source={{ uri: imageUrl }}
                           style={{
-                            width: 250,
-                            aspectRatio: 1,
+                            width: 270,
+                            height: 270,
                             borderRadius: 10,
                             marginRight: 10,
                           }}
-                          resizeMode="contain"
+                          resizeMode="cover"
                         />
                       </TouchableOpacity>
                     );
@@ -375,23 +528,23 @@ const onRefresh = async () => {
               <Text style={styles.modalDescription}>
                 {Array.isArray(selectedPost?.body)
                   ? selectedPost.body
-                    .map((block) =>
-                      Array.isArray(block.children)
-                        ? block.children.map((child) => child.text).join("")
-                        : ""
-                    )
-                    .join("\n\n")
+                      .map((block) =>
+                        Array.isArray(block.children)
+                          ? block.children.map((child) => child.text).join("")
+                          : ""
+                      )
+                      .join("\n\n")
                   : typeof selectedPost?.body === "string"
-                    ? selectedPost.body
-                    : "No content available"}
+                  ? selectedPost.body
+                  : "No content available"}
               </Text>
 
               {/* Hashtags */}
               <Text style={styles.modalHashtags}>
                 {selectedPost?.hashtags?.length
                   ? selectedPost.hashtags
-                    .map((tag) => `${tag.hashtag}`)
-                    .join("\n")
+                      .map((tag) => `${tag.hashtag}`)
+                      .join("\n")
                   : "No hashtags"}
               </Text>
 
@@ -400,27 +553,13 @@ const onRefresh = async () => {
                 {new Date(selectedPost?._createdAt).toLocaleString()}
               </Text>
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
-
-      {refreshing && (
-        <View
-          style={{
-            position: "absolute",
-            top: -60,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-          }}
-        >
-          <Ionicons name="refresh" size={40} color="#4A90E2" />
-        </View>
-      )}
 
       {selectedPost?.images?.length > 0 && (
         <ImageViewing
-          images={selectedPost.images.map(img => ({ uri: img.asset.url }))}
+          images={selectedPost.images.map((img) => ({ uri: img.asset.url }))}
           imageIndex={imageViewerIndex}
           visible={isImageViewerVisible}
           onRequestClose={() => setIsImageViewerVisible(false)}
@@ -429,7 +568,6 @@ const onRefresh = async () => {
       )}
     </View>
   );
-
 };
 
 export default HomeScreen;
@@ -437,8 +575,8 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
+    backgroundColor: "#f9f9f9",
+    paddingHorizontal: 0,
     paddingBottom: 0,
   },
   header: {
@@ -466,6 +604,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
+    marginHorizontal: 16,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
@@ -524,5 +663,64 @@ const styles = StyleSheet.create({
   loadingFooter: {
     padding: 10,
     alignItems: "center",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  searchBox: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: "#333",
+  },
+  clearButton: {
+    paddingLeft: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    maxHeight: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 12,
+    color: "#222",
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: "#444",
+    marginBottom: 15,
+    lineHeight: 22,
+  },
+  modalHashtags: {
+    fontSize: 14,
+    color: "#007AFF",
+    marginBottom: 12,
+  },
+  modalTime: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 10,
   },
 });

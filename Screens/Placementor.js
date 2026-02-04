@@ -10,23 +10,29 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Share
+  Share,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import { useUser } from "@clerk/clerk-expo";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Linking } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 
 let url = "";
+
+const getUserSpecificKey = (userId) => {
+  return `placementBookmarks_${userId}`;
+};
+
 // Function to fetch placement data based on the selected year
 const fetchPlacementData = async (year) => {
-  if(year === "2025")
-    url=  "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202025%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+  if (year === "2025")
+    url =
+      "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202025%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
   else if (year === "2024") {
     url =
       "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
@@ -52,20 +58,16 @@ const fetchPlacementData = async (year) => {
 };
 
 // Share button handler
-  const onShare = async (post) => {
-    try {
-      await Share.share({
-        title: post.title,
-        message:
-          `${post.title}\n\n${
-            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
-            "No content available"
-          }\n\nShared via Mailer Daemon`,
-      });
-    } catch (error) {
-      console.error("Error sharing post:", error);
-    }
-  };
+const onShare = async (item) => {
+  try {
+    await Share.share({
+      title: `${item.company_name} - ${item.role}`,
+      message: `${item.company_name}\nRole: ${item.role}\nName: ${item.name}\nYear: ${item.year}\n\nShared via Mailer Daemon`,
+    });
+  } catch (error) {
+    console.error("Error sharing placement:", error);
+  }
+};
 
 const PlacementList = () => {
   const [placements, setPlacements] = useState([]);
@@ -112,7 +114,7 @@ const PlacementList = () => {
         setBookmarkedPosts(JSON.parse(savedBookmarks));
       }
     } catch (error) {
-      console.error('Error loading bookmarks:', error);
+      console.error("Error loading bookmarks:", error);
     }
   };
 
@@ -124,20 +126,18 @@ const PlacementList = () => {
       // Create a unique identifier for the placement item
       const placementItem = {
         ...item,
-        id: item._id || `placement_${item.company_name}_${item.year}` // Create unique ID if none exists
+        id: item._id || `placement_${item.company_name}_${item.year}`, // Create unique ID if none exists
       };
 
-      const isBookmarked = bookmarkedPosts.some(post =>
-        post.id === placementItem.id ||
-        post._id === placementItem._id
+      const isBookmarked = bookmarkedPosts.some(
+        (post) => post.id === placementItem.id || post._id === placementItem._id
       );
 
       let updatedBookmarks;
 
       if (isBookmarked) {
-        updatedBookmarks = bookmarkedPosts.filter(post =>
-          post.id !== placementItem.id &&
-          post._id !== placementItem._id
+        updatedBookmarks = bookmarkedPosts.filter(
+          (post) => post.id !== placementItem.id && post._id !== placementItem._id
         );
       } else {
         updatedBookmarks = [...bookmarkedPosts, placementItem];
@@ -146,20 +146,13 @@ const PlacementList = () => {
       await AsyncStorage.setItem(userKey, JSON.stringify(updatedBookmarks));
       setBookmarkedPosts(updatedBookmarks);
     } catch (error) {
-      console.error('Error toggling bookmark:', error);
+      console.error("Error toggling bookmark:", error);
     }
   };
 
   const handleSearch = (text) => {
     setSearchText(text);
     filterPlacements(text, selectedBranch);
-    // const filteredData = placements.filter(
-    //   (item) =>
-    //     item.name.toLowerCase().includes(text.toLowerCase()) ||
-    //     item.company_name.toLowerCase().includes(text.toLowerCase()) ||
-    //     item.role.toLowerCase().includes(text.toLowerCase())
-    // );
-    // setFilteredPlacements(filteredData);
   };
 
   const handleBranchChange = (branch) => {
@@ -171,14 +164,15 @@ const PlacementList = () => {
     const filteredData = placements.filter((item) => {
       // Ensure all properties exist before calling .toLowerCase()
       const name = item.name ? item.name.toLowerCase() : "";
-      const companyName = item.company_name ? item.company_name.toLowerCase() : "";
+      const companyName = item.company_name
+        ? item.company_name.toLowerCase()
+        : "";
       const role = item.role ? item.role.toLowerCase() : "";
 
       const matchesSearch =
         name.includes(text.toLowerCase()) ||
         companyName.includes(text.toLowerCase()) ||
         role.includes(text.toLowerCase());
-  
 
       const eligibleBranches = item.eligible_branch
         ? item.eligible_branch.toLowerCase().split(",")
@@ -195,7 +189,6 @@ const PlacementList = () => {
     setFilteredPlacements(filteredData);
   };
 
-
   const navigateToDetails = (company_name, year, url) => {
     navigation.navigate("Details", { company_name, year, url });
   };
@@ -211,43 +204,72 @@ const PlacementList = () => {
     return `https://cdn.sanity.io/images/zltsypm6/production/${imageId}-${dimensions}.${format}`;
   };
 
-  const renderCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigateToDetails(item.company_name, item.year, url)}
-    >
-      <View>
-        <Image
-          source={{ uri: getImageUrl(item.image) }}
-          style={styles.companyLogo}
-        />
-      </View>
+  const renderCard = ({ item }) => {
+    const isBookmarked = bookmarkedPosts.some(
+      (post) =>
+        post.id === item._id ||
+        post._id === item._id ||
+        post.id === `placement_${item.company_name}_${item.year}`
+    );
 
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.name}</Text>
-        <Text style={styles.detail}>Role: {item.role}</Text>
-        <Text>On Campus</Text>
-        <Text>Year : {item.year}</Text>
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={{ flexDirection: "row", flex: 1 }}
+          onPress={() => navigateToDetails(item.company_name, item.year, url)}
+        >
+          <View>
+            <Image
+              source={{ uri: getImageUrl(item.image) }}
+              style={styles.companyLogo}
+            />
+          </View>
+
+          <View style={styles.cardContent}>
+            <Text style={styles.title}>{item.name}</Text>
+            <Text style={styles.detail}>Role: {item.role}</Text>
+            <Text>On Campus</Text>
+            <Text>Year : {item.year}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.iconsContainer}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => toggleBookmark(item)}
+          >
+            <Icon
+              name={isBookmarked ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color="#333"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => onShare(item)}
+          >
+            <Icon name="share-social-outline" size={20} color="#333" />
+          </TouchableOpacity>
+          {/* <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigateToDetails(item.company_name, item.year, url)}
+          >
+            <Icon name="information-circle-outline" size={20} color="#333" />
+          </TouchableOpacity> */}
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+              )
+            }
+          >
+            <FontAwesomeIcon5 name="instagram" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.iconsContainer}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="bookmark-border" size={20} color="#333" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="share-social-outline" size={20} color="#333" onPress={() => onShare(item)} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="info" size={20} color="#333" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="open-in-new" size={20} color="#333" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Icon name="open-in-new" size={20} color="#333" />
-        </TouchableOpacity> */}
-      </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -269,11 +291,13 @@ const PlacementList = () => {
           placeholderTextColor="#888"
         />
         {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => {
-            setSearchText("");
-            setFilteredPlacements(placements);
-          }}
-            style={styles.clearButton}>
+          <TouchableOpacity
+            onPress={() => {
+              setSearchText("");
+              setFilteredPlacements(placements);
+            }}
+            style={styles.clearButton}
+          >
             <Icon name="close" size={22} color="#777" />
           </TouchableOpacity>
         )}
@@ -291,7 +315,6 @@ const PlacementList = () => {
           <Picker.Item label="2023" value="2023" />
           <Picker.Item label="2022" value="2022" />
           <Picker.Item label="2021" value="2021" />
-          {/* <Picker.Item label="2020" value="2020" /> */}
         </Picker>
 
         <Picker
@@ -359,36 +382,36 @@ const styles = StyleSheet.create({
   picker: {
     width: 150,
     backgroundColor: "#fff",
-      color: "#333",   
+    color: "#333",
   },
   card: {
-  flexDirection: "row",
-  backgroundColor: "#fff",
-  borderRadius: 12,
-  marginVertical: 8,
-  marginHorizontal: 10,
-  overflow: "hidden",
-  borderWidth: 1,
-  borderColor: "rgba(0,0,0,0.05)", // light subtle border
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3, // Android shadow
-  alignItems: "center",
-},
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)", // light subtle border
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
+    alignItems: "center",
+  },
 
- companyLogo: {
-  width: 100, // slightly smaller to match thin style
-  height: 100,
-  resizeMode: "contain",
-  marginLeft: 8,
-},
+  companyLogo: {
+    width: 100, // slightly smaller to match thin style
+    height: 100,
+    resizeMode: "contain",
+    marginLeft: 8,
+  },
   cardContent: {
-  flex: 1,
-  marginLeft: 12,
-  paddingVertical: 8,
-},
+    flex: 1,
+    marginLeft: 12,
+    paddingVertical: 8,
+  },
   title: {
     fontSize: 16,
     fontWeight: "bold",
@@ -401,14 +424,14 @@ const styles = StyleSheet.create({
   cardcontainer: {
     padding: 20,
   },
- iconsContainer: {
-  flexDirection: "column",
-  backgroundColor: "#98DDFF",
-  borderTopRightRadius: 12,
-  borderBottomRightRadius: 12,
-  padding: 5,
-  justifyContent: "center",
-},
+  iconsContainer: {
+    flexDirection: "column",
+    backgroundColor: "#98DDFF",
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    padding: 5,
+    justifyContent: "center",
+  },
   iconButton: {
     padding: 10,
     alignItems: "center",
