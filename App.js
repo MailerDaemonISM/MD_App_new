@@ -23,7 +23,13 @@ import CustomDrawerContent from "./Screens/CustomDrawer";
 import HomeScreen from "./Screens/HomeScreen";
 
 import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
+<<<<<<< HEAD
 import { ActivityIndicator, View,StatusBar } from "react-native";
+=======
+import { ActivityIndicator, View } from "react-native";
+import ATSScreen from "./Screens/ATSScreen";
+
+>>>>>>> ATS
 
 
 const Drawer = createDrawerNavigator();
@@ -47,6 +53,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="map" component={CampusMap} options={{ title: "Campus Map" }} />
       <Drawer.Screen name="clubs" component={Clubs} options={{ title: "Clubs & NGOs" }} />
       <Drawer.Screen name="MDLostnFound" component={MDLostnFound} />
+      <Drawer.Screen name="ATSScreen" component={ATSScreen} />
       <Drawer.Screen name="Placementor" component={Placementor} />
       <Drawer.Screen name="UserScreen" component={UserScreen} options={{ title: "Saved Posts" }} />
       <Drawer.Screen name="ImportantContacts" component={ImportantContacts} />

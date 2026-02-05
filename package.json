@@ -17,8 +17,6 @@
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
-          "@react-native-community/cli-server-api",
-          "@react-native-community/masked-view",
           "@sanity/client",
           "buffer",
           "react-native-vector-icons"
@@ -28,7 +26,9 @@
     }
   },
   "dependencies": {
-    "@expo/webpack-config": "^19.0.0",
+<<<<<<< HEAD
+    "@clerk/clerk-expo": "^2.19.21",
+    "@portabletext/react-native": "^3.0.0",
     "@react-native-community/cli-server-api": "^15.1.3",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native-picker/picker": "2.9.0",
@@ -36,18 +36,58 @@
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.25",
     "@react-navigation/stack": "^6.3.20",
+=======
+    "@clerk/clerk-expo": "^2.19.20",
+    "@google/genai": "^1.39.0",
+    "@portabletext/react-native": "^3.0.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/cli-server-api": "^20.1.0",
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/drawer": "7",
+    "@react-navigation/native": "7",
+    "@react-navigation/stack": "^7.6.16",
+>>>>>>> ATS
     "@sanity/client": "^6.27.1",
     "autoprefixer": "^10.4.20",
     "babel-preset-react-app": "^10.0.1",
     "babel-runtime": "^6.26.0",
+<<<<<<< HEAD
     "expo": "^53.0.0",
-    "expo-status-bar": "~2.0.1",
+    "expo-camera": "~16.1.11",
+    "expo-constants": "~17.1.8",
+    "expo-device": "~7.1.4",
+    "expo-file-system": "~18.1.11",
+    "expo-image-picker": "~16.1.4",
+    "expo-linking": "~7.1.7",
+    "expo-media-library": "~17.1.7",
+    "expo-notifications": "~0.31.4",
+    "expo-secure-store": "~14.2.4",
+    "expo-splash-screen": "~0.30.10",
+=======
+    "expo": "~53.0.25",
+    "expo-crypto": "~14.1.5",
+    "expo-dev-client": "~5.2.4",
+    "expo-document-picker": "~13.1.6",
+    "expo-image-picker": "~16.1.4",
+    "expo-notifications": "~0.31.4",
+    "expo-pdf-text-extract": "^1.0.0",
+    "expo-router": "~5.1.10",
+    "expo-secure-store": "~14.2.4",
+>>>>>>> ATS
+    "expo-status-bar": "~2.2.3",
     "nativewind": "^2.0.11",
     "postcss": "^8.5.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-native": "0.76.9",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.6",
+<<<<<<< HEAD
+    "react-native-element-dropdown": "^2.12.4",
     "react-native-gesture-handler": "~2.20.2",
+=======
+    "react-native-dotenv": "^3.4.11",
+    "react-native-element-dropdown": "^2.12.4",
+    "react-native-gesture-handler": "~2.24.0",
+>>>>>>> ATS
     "react-native-image-viewing": "^0.2.2",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-modal": "^14.0.0-rc.1",
@@ -63,8 +103,13 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+<<<<<<< HEAD
     "@react-native-community/cli": "^20.0.2",
-    "tailwindcss": "^4.1.12"
+    "react-native-dotenv": "^3.4.11",
+    "tailwindcss": "^3.4.17"
+=======
+    "tailwindcss": "~3.4.0"
+>>>>>>> ATS
   },
   "private": true
 }

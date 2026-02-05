@@ -33,6 +33,7 @@
         <data android:scheme="mdapp"/>
         <data android:scheme="exp+md-app"/>
       </intent-filter>
+<<<<<<< HEAD
       <intent-filter data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
         <data android:scheme="https" android:host="mdapp.com" android:pathPrefix="/post"/>
@@ -40,6 +41,8 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
+=======
+>>>>>>> ATS
     </activity>
   </application>
 </manifest>

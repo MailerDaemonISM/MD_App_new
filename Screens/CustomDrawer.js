@@ -55,6 +55,8 @@ const CustomDrawerContent = (props) => {
               label="Home"
               onPress={() => props.navigation.navigate("HomeScreen")}
             />
+          
+
             <NavItem
               source={require("../assets/hashtags.png")}
               label="Hashtags"
@@ -64,6 +66,12 @@ const CustomDrawerContent = (props) => {
               source={require("../assets/Calender.png")}
               label="Academic Calendar"
               onPress={() => props.navigation.navigate("AcademicCalendar")}
+            />
+            {/* Import ATSScreen */}
+            <NavItem
+              source={require("../assets/Ats.png")}
+              label="ATS Checker"
+              onPress={() => props.navigation.navigate("ATSScreen")}
             />
             <NavItem
               source={require("../assets/Map.jpg")}
