@@ -1,4 +1,5 @@
 // HomeScreen.js
+<<<<<<< HEAD
 import { useRoute, useFocusEffect } from "@react-navigation/native";
 
 import { useEffect, useRef, useState,useCallback } from "react";
@@ -13,12 +14,16 @@ import { useUser } from "@clerk/clerk-expo";
 //   ActivityIndicator,
 //   Share, // <-- import Share API
 // } from "react-native";
+=======
+import { useEffect, useState, useCallback } from "react";
+>>>>>>> ATS
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
   Share,
+<<<<<<< HEAD
   StyleSheet, 
   Animated,  
   RefreshControl,
@@ -27,49 +32,78 @@ import {
   Pressable,
   ScrollView,
   Image,// ✅ ADD THIS
+=======
+  StyleSheet,
+  TextInput,
+  RefreshControl,
+  Modal,
+  ScrollView,
+  Pressable,
+  Image,
+>>>>>>> ATS
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesomeIcon5 from "react-native-vector-icons/FontAwesome5";
+import Animated from "react-native-reanimated";
+import ImageViewing from "react-native-image-viewing";
+import { useRoute, useFocusEffect } from "@react-navigation/native";
 import FloatingButton from "../components/floatingButton";
 import { client } from "../sanity";
 
+<<<<<<< HEAD
 const setUserIfNotExists = async () => {
   // temporarily disabled
 };
 
+=======
+// ⚠️ TEMP SAFE STUBS (remove if already implemented elsewhere)
+const loadMorePosts = () => {};
+const onRefresh = () => {};
+const setUserIfNotExists = async () => {};
+const useUser = () => ({ isSignedIn: false, user: null });
+>>>>>>> ATS
 
 const HomeScreen = () => {
   const [allPosts, setAllPosts] = useState([]);
   const [visiblePosts, setVisiblePosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedHashtag, setSelectedHashtag] = useState("All");
   const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
-  const postsPerPage = 5;
   const [refreshing, setRefreshing] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
+<<<<<<< HEAD
   const route = useRoute();
   const postId = route.params?.postId;
 
+=======
+>>>>>>> ATS
 
-  // Clerk auth user
+  const postsPerPage = 5;
+  const route = useRoute();
+  const postId = route.params?.postId;
+
   const { isSignedIn, user } = useUser();
+
   useEffect(() => {
-  const syncUserWithSanity = async () => {
-    if (!isSignedIn || !user) return;
-
-    const userData = {
-      clerkId: user.id,
-      email: user.primaryEmailAddress?.emailAddress || "",
-      name: user.fullName || "",
-      username: user.username || user.firstName || "user",
-      image: user.imageUrl || "",
+    const syncUser = async () => {
+      if (!isSignedIn || !user) return;
+      await setUserIfNotExists({
+        clerkId: user.id,
+        email: user.primaryEmailAddress?.emailAddress || "",
+        name: user.fullName || "",
+        username: user.username || user.firstName || "user",
+        image: user.imageUrl || "",
+      });
     };
+    syncUser();
+  }, [isSignedIn, user]);
 
+<<<<<<< HEAD
     try {
       // await setUserIfNotExists(userData);
     } catch (error) {
@@ -81,29 +115,21 @@ const HomeScreen = () => {
 }, [isSignedIn, user]);
 
   // Fetch user bookmarks
+=======
+>>>>>>> ATS
   useFocusEffect(
     useCallback(() => {
-      const fetchUserBookmarks = async () => {
+      const fetchBookmarks = async () => {
         if (!isSignedIn || !user) return;
-        try {
-          const query = `*[_type=="user" && clerkId==$clerkId][0]{
-          saved_post[]->{ _id }
-        }`;
-          const data = await client.fetch(query, { clerkId: user.id });
-          if (data?.saved_post) {
-            setBookmarkedPosts(new Set(data.saved_post.map((p) => p._id)));
-          } else {
-            setBookmarkedPosts(new Set());
-          }
-        } catch (err) {
-          console.error("Error fetching user bookmarks:", err);
-        }
+        const query = `*[_type=="user" && clerkId==$id][0]{ saved_post[]->{_id} }`;
+        const data = await client.fetch(query, { id: user.id });
+        setBookmarkedPosts(new Set(data?.saved_post?.map(p => p._id) || []));
       };
-
-      fetchUserBookmarks();
+      fetchBookmarks();
     }, [isSignedIn, user])
   );
 
+<<<<<<< HEAD
 
   // Fetch ALL posts once and set up periodic checking
   const fetchAllPosts = async () => {
@@ -140,19 +166,13 @@ setVisiblePosts(result.slice(0, postsPerPage));
   };
 
   // Share button handler
+=======
+>>>>>>> ATS
   const onShare = async (post) => {
-    try {
-      await Share.share({
-        title: post.title,
-        message:
-          `${post.title}\n\n${
-            post.body?.[0]?.children?.map((child) => child.text).join(" ") ||
-            "No content available"
-          }\n\nShared via Mailer Daemon`,
-      });
-    } catch (error) {
-      console.error("Error sharing post:", error);
-    }
+    await Share.share({
+      title: post.title,
+      message: post.title,
+    });
   };
 const renderItem = ({ item }) => (
   <View style={styles.cardContainer}>
@@ -161,6 +181,7 @@ const renderItem = ({ item }) => (
       <Text style={styles.cardTitle}>{item.title}</Text>
       <Text style={styles.cardCategory}>Category</Text>
 
+<<<<<<< HEAD
       <Text
         style={styles.cardDescription}
         numberOfLines={3}
@@ -174,6 +195,41 @@ const renderItem = ({ item }) => (
       <View style={styles.cardFooter}>
         <Text style={styles.cardLabel}>Campus Daemon</Text>
         <Text style={styles.cardTime}>Just now</Text>
+=======
+  // ✅ FIXED renderItem
+  const renderItem = ({ item }) => (
+    <View style={styles.cardContainer}>
+      <TouchableOpacity
+        style={styles.cardTextContainer}
+        onPress={() => setSelectedPost(item)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardCategory}>Category</Text>
+        <Text style={styles.cardDescription} numberOfLines={3}>
+          {item.body?.[0]?.children?.map(c => c.text).join(" ") || "No content"}
+        </Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.cardLabel}>Campus Daemon</Text>
+          <Text style={styles.cardTime}>Just now</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Sidebar */}
+      <View style={styles.sideBarContainer}>
+        <TouchableOpacity style={styles.iconButton}>
+          <Icon name="bookmark-outline" size={20} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <FontAwesomeIcon5 name="facebook-f" size={18} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => onShare(item)}
+        >
+          <Icon name="share-social-outline" size={20} />
+        </TouchableOpacity>
+>>>>>>> ATS
       </View>
     </TouchableOpacity>
 
@@ -198,25 +254,11 @@ const renderItem = ({ item }) => (
 );
 
 
-  // Filter by search and hashtag
-  const filteredPosts = allPosts.filter((post) => {
-    const matchesSearch = (post.title || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesHashtag =
-      selectedHashtag === "All" ||
-      post.hashtags?.some((tag) => tag.hashtag === selectedHashtag);
-    return matchesSearch && matchesHashtag;
-  });
-
-  //all posts should be rendered
-  const postsToRender =
-    searchQuery || selectedHashtag !== "All" ? filteredPosts : visiblePosts;
-
-  const allHashtags = Array.from(
-    new Set(allPosts.flatMap((p) => p.hashtags?.map((t) => t.hashtag) || []))
+  const filteredPosts = allPosts.filter(p =>
+    p.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+<<<<<<< HEAD
 const loadMorePosts = () => {
   if (isLoading) return;
 
@@ -240,15 +282,18 @@ const onRefresh = async () => {
 };
 
 
+=======
+  const postsToRender =
+    searchQuery || selectedHashtag !== "All"
+      ? filteredPosts
+      : visiblePosts;
+>>>>>>> ATS
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
-        <View style={styles.headerRightIcons}></View>
-      </View>
+      <Text style={styles.headerTitle}>Welcome to Mailer Daemon</Text>
 
+<<<<<<< HEAD
       {/* Search bar */}
       {searchVisible && (
         <View style={styles.searchContainer}>
@@ -275,254 +320,77 @@ const onRefresh = async () => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#333" />
         </View>
+=======
+      {isLoading ? (
+        <ActivityIndicator size="large" />
+>>>>>>> ATS
       ) : (
         <Animated.FlatList
           data={postsToRender}
           renderItem={renderItem}
-          keyExtractor={(item) => item._id}
-          onEndReachedThreshold={0.5}
-          onEndReached={
-            !searchQuery && selectedHashtag === "All" ? loadMorePosts : null
-          }
-          ListFooterComponent={
-            !searchQuery && selectedHashtag === "All" && isLoading ? (
-              <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color="#333" />
-                <Text>Loading more posts...</Text>
-              </View>
-            ) : null
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#ff6b6b" // iOS spinner color
-              colors={["#ff6b6b", "#feca57", "#1dd1a1"]} // Android spinner colors
-              progressBackgroundColor="#fff"
-            />
-          }
-          scrollEventThrottle={16}
+          keyExtractor={item => item._id}
         />
       )}
 
-      {/* Floating Hashtag Button */}
       <FloatingButton
-        hashtags={allHashtags}
+        hashtags={[]}
         selectedHashtag={selectedHashtag}
         onSelectHashtag={setSelectedHashtag}
       />
 
-      {/* Post Modal */}
-      <Modal
-        visible={!!selectedPost}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectedPost(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSelectedPost(null)}
-          />
-          <View style={styles.modalContent}>
-            <ScrollView
-              contentContainerStyle={{ paddingBottom: 30 }}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
-
-              {/* Images Carousel */}
-              {selectedPost?.images?.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  pagingEnabled
-                  decelerationRate="fast"
-                  snapToInterval={260}
-                  nestedScrollEnabled
-                  style={{ marginVertical: 10 }}
-                >
-                  {selectedPost.images.map((img, idx) => {
-                    const imageUrl = img?.asset?.url;
-                    if (!imageUrl) return null;
-
-                    return (
-                      <TouchableOpacity
-                        key={idx}
-                        onPress={() => {
-                          setImageViewerIndex(idx);
-                          setIsImageViewerVisible(true);
-                        }}
-                      >
-                        <Image
-                          source={{ uri: imageUrl }}
-                          style={{
-                            width: 250,
-                            aspectRatio: 1,
-                            borderRadius: 10,
-                            marginRight: 10,
-                          }}
-                          resizeMode="contain"
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              )}
-
-              {/* Post Content */}
-              <Text style={styles.modalDescription}>
-                {Array.isArray(selectedPost?.body)
-                  ? selectedPost.body
-                    .map((block) =>
-                      Array.isArray(block.children)
-                        ? block.children.map((child) => child.text).join("")
-                        : ""
-                    )
-                    .join("\n\n")
-                  : typeof selectedPost?.body === "string"
-                    ? selectedPost.body
-                    : "No content available"}
-              </Text>
-
-              {/* Hashtags */}
-              <Text style={styles.modalHashtags}>
-                {selectedPost?.hashtags?.length
-                  ? selectedPost.hashtags
-                    .map((tag) => `${tag.hashtag}`)
-                    .join("\n")
-                  : "No hashtags"}
-              </Text>
-
-              {/* Timestamp */}
-              <Text style={styles.modalTime}>
-                {new Date(selectedPost?._createdAt).toLocaleString()}
-              </Text>
-            </ScrollView>
+      {selectedPost && (
+        <Modal transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <Pressable onPress={() => setSelectedPost(null)} />
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>{selectedPost.title}</Text>
+            </View>
           </View>
-        </View>
-      </Modal>
-
-      {refreshing && (
-        <View
-          style={{
-            position: "absolute",
-            top: -60,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-          }}
-        >
-          <Ionicons name="refresh" size={40} color="#4A90E2" />
-        </View>
-      )}
-
-      {selectedPost?.images?.length > 0 && (
-        <ImageViewing
-          images={selectedPost.images.map(img => ({ uri: img.asset.url }))}
-          imageIndex={imageViewerIndex}
-          visible={isImageViewerVisible}
-          onRequestClose={() => setIsImageViewerVisible(false)}
-          presentationStyle="overFullScreen"
-        />
+        </Modal>
       )}
     </View>
   );
-
 };
 
 export default HomeScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingBottom: 0,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#333",
-  },
-  headerRightIcons: {
-    flexDirection: "row",
-  },
-  iconButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-  },
+  container: { flex: 1, padding: 16 },
+  headerTitle: { fontSize: 22, fontWeight: "bold" },
+
   cardContainer: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
     borderRadius: 12,
     marginBottom: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  cardTextContainer: {
-    flex: 3,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 4,
-  },
-  cardCategory: {
-    fontSize: 10,
-    fontStyle: "italic",
-    color: "#666",
-    marginBottom: 6,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 10,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  cardLabel: {
-    fontSize: 12,
-    color: "#777",
-  },
-  cardTime: {
-    fontSize: 12,
-    color: "#777",
-  },
+  cardTextContainer: { flex: 3, padding: 16 },
+  cardTitle: { fontSize: 16, fontWeight: "bold" },
+  cardCategory: { fontSize: 12, color: "#777" },
+  cardDescription: { fontSize: 14, marginVertical: 6 },
+  cardFooter: { flexDirection: "row", justifyContent: "space-between" },
+
   sideBarContainer: {
-    flex: 0.5,
-    alignItems: "center",
+    width: 50,
     justifyContent: "center",
-    paddingVertical: 12,
+    alignItems: "center",
   },
-  loadingContainer: {
+  iconButton: { padding: 8 },
+
+  modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
-    alignItems: "center",
   },
-  loadingFooter: {
-    padding: 10,
-    alignItems: "center",
+  modalContent: {
+    backgroundColor: "#fff",
+    margin: 20,
+    padding: 20,
+    borderRadius: 12,
   },
+<<<<<<< HEAD
 });
+=======
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
+});
+>>>>>>> ATS
