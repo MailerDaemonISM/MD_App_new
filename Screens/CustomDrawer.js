@@ -71,7 +71,7 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("map")}
             />
             <NavItem
-              source={require("../assets/campus.png")}
+              source={require("../assets/reddit.png")}
               label="Reddit"
               onPress={() => props.navigation.navigate("reddit")}
             />
@@ -102,7 +102,7 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("ATS")}
             />
             <NavItem
-              source={require("../assets/cv.png")}
+              source={require("../assets/track.png")}
               label="Track Toto"
               onPress={() => props.navigation.navigate("Track Toto")}
             />

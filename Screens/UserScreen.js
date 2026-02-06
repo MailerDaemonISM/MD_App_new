@@ -189,6 +189,9 @@ const UserScreen = () => {
     let url = "";
     const yearStr = item.year.toString();
     switch (yearStr) {
+      case "2025":
+        url="https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202025%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";
+        break;
       case "2024":
         url =
           "https://zltsypm6.api.sanity.io/v2021-10-21/data/query/production?query=*%5Byear%20%3D%3D%202024%5D%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A%0A";

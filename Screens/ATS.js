@@ -7,23 +7,72 @@ import * as DocumentPicker from 'expo-document-picker';
 import { extractText } from 'expo-pdf-text-extract';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RewardedInterstitialAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 
 const { width } = Dimensions.get('window');
 
+// AdMob Rewarded Interstitial Configuration (Using Test ID)
+const adUnitId = TestIds.REWARDED_INTERSTITIAL;
+const rewardedInterstitial = RewardedInterstitialAd.createForAdRequest(adUnitId);
+
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI("AIzaSyD-BCixf8U1uacVOyeVwHSRSFlf4BliCgk"); 
+const genAI = new GoogleGenerativeAI("AIzaSyCTKSVO-v3gQ-75_kXD6ysKj8F3zRsnERU"); 
 const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
 export default function ATSScreen() {
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [result, setResult] = useState(null);
+    const [trialCount, setTrialCount] = useState(0);
+    const [adLoaded, setAdLoaded] = useState(false);
     const progressAnim = useRef(new Animated.Value(0)).current;
+
+    // Load Trials and Ad on Mount
+    useEffect(() => {
+        loadTrialCount();
+        
+        const unsubscribeLoaded = rewardedInterstitial.addAdEventListener(
+            RewardedAdEventType.LOADED, () => setAdLoaded(true)
+        );
+        const unsubscribeEarned = rewardedInterstitial.addAdEventListener(
+            RewardedAdEventType.EARNED_REWARD, () => {
+                resetTrials();
+            }
+        );
+
+        rewardedInterstitial.load();
+
+        return () => {
+            unsubscribeLoaded();
+            unsubscribeEarned();
+        };
+    }, []);
+
+    const loadTrialCount = async () => {
+        const savedCount = await AsyncStorage.getItem('@ats_trial_count');
+        if (savedCount) setTrialCount(parseInt(savedCount));
+    };
+
+    const resetTrials = async () => {
+        setTrialCount(0);
+        await AsyncStorage.setItem('@ats_trial_count', '0');
+        Alert.alert("Reward Granted", "You have unlocked 3 more free scans!");
+        rewardedInterstitial.load(); // Reload for next time
+    };
+
+    const handleAdsUnlock = () => {
+        if (adLoaded) {
+            rewardedInterstitial.show();
+        } else {
+            Alert.alert("Ad Loading", "Please wait a moment for the ad to load.");
+            rewardedInterstitial.load();
+        }
+    };
 
     // Progress bar animation logic
     useEffect(() => {
         if (loading) {
-            // Animate to 90% over 5 seconds (simulating work)
             Animated.timing(progressAnim, {
                 toValue: 90,
                 duration: 5000,
@@ -46,6 +95,16 @@ export default function ATSScreen() {
     }, [loading]);
 
     const handleResumeUpload = async () => {
+        // TRIAL LIMIT CHECK
+        if (trialCount >= 3) {
+            Alert.alert(
+                "Limit Reached", 
+                "You've used your 3 free trials. Watch a quick ad to unlock 3 more!",
+                [{ text: "Watch Ad", onPress: handleAdsUnlock }, { text: "Cancel" }]
+            );
+            return;
+        }
+
         try {
             const doc = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
             if (doc.canceled) return;
@@ -80,20 +139,24 @@ export default function ATSScreen() {
                 responseText.lastIndexOf('}') + 1
             );
             
-            // Success! Jump to 100%
+            // Success! 
             Animated.timing(progressAnim, {
                 toValue: 100,
                 duration: 300,
                 useNativeDriver: false,
-            }).start(() => {
+            }).start(async () => {
                 setResult(JSON.parse(jsonString));
                 setLoading(false);
+                
+                // INCREMENT TRIAL COUNT
+                const nextCount = trialCount + 1;
+                setTrialCount(nextCount);
+                await AsyncStorage.setItem('@ats_trial_count', nextCount.toString());
             });
 
         } catch (error) {
             setLoading(false);
-            console.log(error.message);
-            Alert.alert( error.message );
+            Alert.alert("Error", error.message);
         }
     };
 
@@ -104,21 +167,28 @@ export default function ATSScreen() {
                 <Image 
                     source={require('../assets/atsScore2.png')} 
                     style={styles.logo}
-                    resizeMode="cover" // This ensures your enlarged image fills the space
+                    resizeMode="cover"
                 />
                 <Text style={styles.headerTitle}>ATS Scan</Text>
-                <Text style={styles.headerSubtitle}>Optimize your resume for top-tier companies</Text>
+                <Text style={styles.headerSubtitle}>Free Trials Remaining: {3 - trialCount}</Text>
             </View>
 
             <View style={styles.contentContainer}>
                 {/* Upload Area */}
                 {!result && !loading && (
-                    <TouchableOpacity style={styles.uploadArea} onPress={handleResumeUpload}>
+                    <TouchableOpacity 
+                        style={[styles.uploadArea, trialCount >= 3 && { opacity: 0.6 }]} 
+                        onPress={handleResumeUpload}
+                    >
                         <View style={styles.uploadIconCircle}>
-                            <Ionicons name="document-text-outline" size={40} color="#007AFF" />
+                            <Ionicons name={trialCount >= 3 ? "lock-closed-outline" : "document-text-outline"} size={40} color="#007AFF" />
                         </View>
-                        <Text style={styles.uploadText}>Upload PDF Resume</Text>
-                        <Text style={styles.uploadSubtext}>AI-powered MD analysis</Text>
+                        <Text style={styles.uploadText}>
+                            {trialCount >= 3 ? "Trials Finished" : "Upload PDF Resume"}
+                        </Text>
+                        <Text style={styles.uploadSubtext}>
+                            {trialCount >= 3 ? "Click to watch ad & unlock" : "AI-powered MD analysis"}
+                        </Text>
                     </TouchableOpacity>
                 )}
 
@@ -151,7 +221,6 @@ export default function ATSScreen() {
                                 <Text style={styles.scoreNumber}>{result.score}</Text>
                                 <Text style={styles.scoreLabel}>Score</Text>
                             </View>
-                            
                             <View style={styles.profileInfo}>
                                 <Text style={styles.profileTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
                                     {result.profile}
@@ -161,14 +230,11 @@ export default function ATSScreen() {
                                 </View>
                             </View>
                         </View>
-
                         <View style={styles.divider} />
-
                         <View style={styles.sectionTitleRow}>
                             <Ionicons name="flash" size={18} color="#007AFF" />
                             <Text style={styles.sectionLabel}>Missing Keywords</Text>
                         </View>
-                        
                         <View style={styles.tagWrapper}>
                             {result.keywords?.map((k, i) => (
                                 <View key={i} style={styles.keywordTag}>
@@ -176,21 +242,20 @@ export default function ATSScreen() {
                                 </View>
                             ))}
                         </View>
-
                         <View style={[styles.sectionTitleRow, { marginTop: 15 }]}>
                             <Ionicons name="trending-up" size={18} color="#10B981" />
                             <Text style={styles.sectionLabel}>Quick Wins</Text>
                         </View>
-
                         {result.tips?.map((t, i) => (
                             <View key={i} style={styles.tipItem}>
                                 <View style={styles.tipBullet} />
                                 <Text style={styles.tipContent}>{t}</Text>
                             </View>
                         ))}
-
                         <TouchableOpacity style={styles.resetBtn} onPress={handleResumeUpload}>
-                            <Text style={styles.resetBtnText}>Scan Another</Text>
+                            <Text style={styles.resetBtnText}>
+                                {trialCount >= 3 ? "Unlock Scans" : "Scan Another"}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -198,7 +263,6 @@ export default function ATSScreen() {
         </ScrollView>
     );
 }
-
 const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
     headerGradient: {
@@ -208,6 +272,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderBottomLeftRadius: 35,
         borderBottomRightRadius: 35,
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 5,
+        fontWeight: '600'
     },
     logo: { width: 140, height: 140, marginBottom: 12, borderRadius: 20 },
     headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },

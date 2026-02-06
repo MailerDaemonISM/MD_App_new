@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
+import { TestIds, BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import {
   View,
   Text,
@@ -107,7 +108,6 @@ const HomeScreen = () => {
       fetchUserBookmarks();
     }, [isSignedIn, user])
   );
-
   // Main Fetch logic with Duplicate Prevention
   const fetchAllPosts = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -184,6 +184,21 @@ const HomeScreen = () => {
     setRefreshing(false);
   }, []);
 
+
+const adUnitId = TestIds.BANNER;
+
+const BannerAdComponent = () => {
+  return (
+    <View>
+      <BannerAd
+        unitId={adUnitId}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+      />
+    </View>
+  );
+};
+
+
   const loadMorePosts = () => {
     if (searchQuery || selectedHashtag !== "All") return;
     const nextPage = currentPage + 1;
@@ -235,8 +250,9 @@ const HomeScreen = () => {
 
     const descriptionPreview = description.split(/\s+/).slice(0, 20).join(" ") + (description.split(/\s+/).length > 20 ? "..." : "");
     const sideBarColor = hashtagColorMap[item.hashtags?.[0]?.hashtag] || "#ddd";
-    const hasImages = item.images?.length > 0;
-
+    const validImages = item.images?.filter(img => img?.asset?.url) || [];
+const hasImages = validImages.length > 0;
+      
     return (
       <TouchableOpacity onPress={() => setSelectedPost(item)}>
         <View style={[styles.cardContainer, hasImages && { paddingBottom: 0 }]}>
@@ -244,20 +260,36 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text numberOfLines={2} style={styles.cardDescription}>{descriptionPreview || "No content"}</Text>
 
-            {hasImages && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
-                {item.images.slice(0, 3).map((img, idx) => (
-                  <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-                    <Image source={{ uri: img.asset.url }} style={{ width: 70, height: 70, borderRadius: 10 }} />
-                    {idx === 2 && item.images.length > 3 && (
-                      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, justifyContent: 'center', alignItems: 'center' }]}>
-                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>+{item.images.length - 3}</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            )}
+          {hasImages && (
+  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
+    {validImages.slice(0, 3).map((img, idx) => (
+      <View key={idx} style={{ position: "relative", marginRight: 8 }}>
+        <Image
+          source={{ uri: img.asset.url }}
+          style={{ width: 70, height: 70, borderRadius: 10 }}
+        />
+
+        {idx === 2 && validImages.length > 3 && (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: "rgba(0,0,0,0.5)",
+                borderRadius: 10,
+                justifyContent: "center",
+                alignItems: "center",
+              },
+            ]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              +{validImages.length - 3}
+            </Text>
+          </View>
+        )}
+      </View>
+    ))}
+  </ScrollView>
+)}
 
             <View style={styles.cardFooter}>
               <Text style={styles.cardLabel}>{item.hashtags?.map(t => t.hashtag).join(", ") || "No hashtags"}</Text>
@@ -347,6 +379,8 @@ const HomeScreen = () => {
           onRequestClose={() => setIsImageViewerVisible(false)}
         />
       )}
+      
+<BannerAdComponent />
     </View>
   );
 };
