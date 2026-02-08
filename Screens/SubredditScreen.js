@@ -1072,11 +1072,13 @@ export default function RedditScreen() {
                       images={selectedPost.image_urls}
                       modalMode={true}
                       onImagePress={(index) => {
-                        setViewerImages(item.image_urls.map(url => ({ uri: url })));
-                        setImageViewerIndex(Math.min(index, item.image_urls.length - 1));
+                        const imgs = selectedPost.image_urls.map(url => ({ uri: url }));
+                        setViewerImages(imgs);
+                        setImageViewerIndex(Math.min(index, imgs.length - 1));
                         setIsImageViewerVisible(true);
                       }}
                     />
+
 
                   </View>
                 )}
@@ -1095,23 +1097,29 @@ export default function RedditScreen() {
           <View style={styles.commentInputWrapper}>
             {parentComment && (
               <View style={styles.replyingBar}>
-                <Text style={styles.replyingText}>Replying to u/{parentComment.is_anonymous ? 'anonymous' : parentComment.author_name}</Text>
-                <TouchableOpacity onPress={() => setParentComment(null)}><Text style={{ color: '#FF4500' }}>Cancel</Text></TouchableOpacity>
-              </View>
-            )}
-            <View style={styles.inputRow}>
-              <TextInput placeholder="Add a comment..." style={styles.commentInput} value={replyText} onChangeText={setReplyText} multiline />
-              <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
-                <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
-              </TouchableOpacity>
-              <View style={styles.inputRow}>
-                <TextInput placeholder="Add a comment..." style={styles.commentInput} value={replyText} onChangeText={setReplyText} multiline />
-                <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
-                  <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
+                <Text style={styles.replyingText}>
+                  Replying to u/{parentComment.is_anonymous ? 'anonymous' : parentComment.author_name}
+                </Text>
+                <TouchableOpacity onPress={() => setParentComment(null)}>
+                  <Text style={{ color: '#FF4500' }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
+            )}
+
+            <View style={styles.inputRow}>
+              <TextInput
+                placeholder="Add a comment..."
+                style={styles.commentInput}
+                value={replyText}
+                onChangeText={setReplyText}
+                multiline
+              />
+              <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
+                <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>Post</Text>
+              </TouchableOpacity>
             </View>
           </View>
+
         </View>
       </Modal>
       <Modal
@@ -1303,11 +1311,60 @@ const styles = StyleSheet.create({
   timeAgo: { fontSize: 12, color: '#878A8C' },
   commentActions: { flexDirection: 'row', gap: 20, marginTop: 8 },
   actionText: { fontSize: 12, fontWeight: '700', color: '#878A8C' },
-  commentInputWrapper: { padding: 12, borderTopWidth: 1, borderTopColor: '#EDF0F5', backgroundColor: '#FFF' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  commentInput: { flex: 1, backgroundColor: '#F6F7F8', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, maxHeight: 100 },
-  replyingBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  replyingText: { fontSize: 12, color: '#878A8C' },
+  commentInputWrapper: {
+  paddingHorizontal: 14,
+  paddingTop: 10,
+  paddingBottom: 14,
+  borderTopWidth: 1,
+  borderTopColor: '#E2E4E7',
+  backgroundColor: '#FFFFFF',
+},
+
+  inputRow: {
+  flexDirection: 'row',
+  alignItems: 'flex-end',
+},
+sendBtn: {
+  marginLeft: 8,
+  backgroundColor: '#0079D3',
+  paddingHorizontal: 18,
+  paddingVertical: 10,
+  borderRadius: 22,
+  justifyContent: 'center',
+  alignItems: 'center',
+  elevation: 2,
+  shadowColor: '#000',
+  shadowOpacity: 0.15,
+  shadowRadius: 3,
+  shadowOffset: { width: 0, height: 2 },
+},
+commentInput: {
+  flex: 1,
+  backgroundColor: '#F8FAFC',
+  borderRadius: 22,
+  paddingHorizontal: 16,
+  paddingVertical: 10,
+  fontSize: 14,
+  color: '#0F172A',
+  maxHeight: 120,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+},
+  replyingBar: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  backgroundColor: '#F1F5F9',
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 14,
+  marginBottom: 8,
+},
+replyingText: {
+  fontSize: 12,
+  color: '#475569',
+  fontWeight: '600',
+},
   tab: {
     paddingVertical: 8,
     paddingHorizontal: 16,
