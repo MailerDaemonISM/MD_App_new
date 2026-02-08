@@ -29,6 +29,8 @@ import { useUser } from '@clerk/clerk-expo';
 import Markdown from 'react-native-markdown-display';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import NativeAdComponent from '../components/NativeAdComponent';
+import VideoAdComponent from '../components/VideoAdComponent';
 
 const { width } = Dimensions.get('window');
 
@@ -55,17 +57,51 @@ const getTimeAgo = (dateString) => {
   return past.toLocaleDateString();
 };
 
+// --- UTILITY: INSERT ADS EVERY 4 POSTS ---
+const insertAdsIntoFeed = (posts) => {
+  if (!posts || posts.length === 0) return [];
+  
+  const feedWithAds = [];
+  let postCount = 0;
+  let adCount = 0; // To alternate between banner and video ads
+
+  posts.forEach((post, index) => {
+    feedWithAds.push(post);
+    postCount++;
+
+    // Insert ad after every 4 posts (but not after the last post)
+    if (postCount === 4 && index < posts.length - 1) {
+      // Alternate between banner ads (even) and video ads (odd)
+      const isVideoAd = adCount % 2 === 1;
+      
+      feedWithAds.push({
+        id: `ad-${index}-${adCount}`,
+        type: isVideoAd ? 'video_ad' : 'banner_ad',
+        isAd: true,
+        isVideoAd: isVideoAd,
+      });
+      
+      adCount++;
+      postCount = 0;
+    }
+  });
+
+  return feedWithAds;
+};
+
 // --- COMPONENT: IMAGE CAROUSEL WITH DOTS ---
 // --- UPDATED COMPONENT: IMAGE CAROUSEL WITH SNAP EFFECT ---
-// --- COMPONENT: IMAGE CAROUSEL WITH SNAP EFFECT + IMAGE VIEWER ---
-const ImageCarousel = ({ images, modalMode = false, onImagePress }) => {
+const ImageCarousel = ({ images, modalMode = false }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const carouselWidth = modalMode ? width - 32 : width;
 
+  // We use a debounce-like logic to only update the index when the scroll has settled
   const handleScroll = (event) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / carouselWidth);
-    if (index !== activeIndex) setActiveIndex(index);
+    if (index !== activeIndex) {
+      setActiveIndex(index);
+    }
   };
 
   return (
@@ -73,36 +109,45 @@ const ImageCarousel = ({ images, modalMode = false, onImagePress }) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        pagingEnabled
+        pagingEnabled={true}
         snapToInterval={carouselWidth}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleScroll}
+        snapToAlignment="start" // Changed to start for smoother locking
+        decelerationRate="fast" // High friction for a snappy feel
+        onMomentumScrollEnd={handleScroll} // Calculate index ONLY after swipe finishes
         scrollEventThrottle={16}
-        disableIntervalMomentum
+        disableIntervalMomentum={true}
+        removeClippedSubviews={true} // Performance optimization for images
       >
         {images.map((url, idx) => (
-          <TouchableOpacity key={idx} activeOpacity={0.9} onPress={() => onImagePress(idx)}>
-            <Image
-              source={{ uri: url }}
-              style={[styles.postImage, { width: carouselWidth, height: modalMode ? 300 : 280 }]}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
+          <Image
+            key={idx}
+            source={{ uri: url }}
+            style={[
+              styles.postImage,
+              { width: carouselWidth, height: modalMode ? 300 : 280 }
+            ]}
+            resizeMode="cover"
+          />
         ))}
       </ScrollView>
 
+      {/* PAGINATION DOTS */}
       {images.length > 1 && (
         <View style={styles.paginationContainer}>
           {images.map((_, idx) => (
-            <View key={idx} style={[styles.paginationDot, idx === activeIndex && styles.paginationDotActive]} />
+            <View
+              key={idx}
+              style={[
+                styles.paginationDot,
+                idx === activeIndex ? styles.paginationDotActive : null
+              ]}
+            />
           ))}
         </View>
       )}
     </View>
   );
 };
-
 
 // 1. Recursive Component for Comment Threads
 const CommentThread = ({ comment, onReply, onDelete, currentUserId, depth = 0 }) => {
@@ -454,7 +499,7 @@ export default function RedditScreen() {
 
       Alert.alert(
         "Report Submitted",
-        "Team Mailer Daemon will review your report request and take necessary actions within 24 hours. Thanks for keeping the community safe!"
+        "Team Mailer Daemon will review your report request take necessary actions within 24 hours. Thanks for keeping the community safe!"
       );
     } catch (err) {
       Alert.alert("Error", "Could not submit report. Please try again later.");
@@ -599,13 +644,16 @@ export default function RedditScreen() {
   const visiblePosts = useMemo(() => {
     if (!posts) return [];
 
-    return posts.filter(post => {
+    const filteredPosts = posts.filter(post => {
       // Convert both to strings to ensure '123' matches 123
       const postAuthorId = String(post.user_id);
       const isBlocked = blockedUsers.some(blockedId => String(blockedId) === postAuthorId);
 
       return !isBlocked;
     });
+
+    // Insert ads into the filtered feed
+    return insertAdsIntoFeed(filteredPosts);
   }, [posts, blockedUsers]); // This re-runs the instant blockedUsers changes
 
   return (
@@ -764,6 +812,17 @@ export default function RedditScreen() {
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF4500" />}
           renderItem={({ item }) => {
+            // Render Video Ad Component
+            if (item.isVideoAd) {
+              return <VideoAdComponent />;
+            }
+
+            // Render Banner Ad Component
+            if (item.isAd && !item.isVideoAd) {
+              return <NativeAdComponent />;
+            }
+
+            // Render Post Card
             const isLiked = item.likes?.some(l => l.user_id === user.id);
             const likeCount = item.likes?.length || 0;
             const commentCount = item.comments?.[0]?.count || 0;
@@ -1042,6 +1101,11 @@ export default function RedditScreen() {
                 <TouchableOpacity onPress={() => setParentComment(null)}><Text style={{ color: '#FF4500' }}>Cancel</Text></TouchableOpacity>
               </View>
             )}
+            <View style={styles.inputRow}>
+              <TextInput placeholder="Add a comment..." style={styles.commentInput} value={replyText} onChangeText={setReplyText} multiline />
+              <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
+                <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
+              </TouchableOpacity>
             <View style={styles.inputRow}>
               <TextInput placeholder="Add a comment..." style={styles.commentInput} value={replyText} onChangeText={setReplyText} multiline />
               <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>

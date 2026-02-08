@@ -1,5 +1,6 @@
 // App.js
 import React from "react";
+import mobileAds from 'react-native-google-mobile-ads';
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -78,6 +79,19 @@ const clerkFrontendApi = "auth.appmailerdaemon.online";
 
 export default function App() {
 console.log("init2");
+
+  // Initialize Mobile Ads SDK
+  React.useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then(() => {
+        console.log('AdMob initialized successfully');
+      })
+      .catch(error => {
+        console.log('AdMob initialization error:', error);
+      });
+  }, []);
+
   useEffect(() => {
     console.log("init");
     async function testConnection() {
