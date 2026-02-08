@@ -122,6 +122,7 @@ const MDLostnFound = () => {
 
         <TextInput
           placeholder="Your Name"
+          placeholderTextColor="#666"
           style={styles.input}
           onChangeText={setname}
           value={name}

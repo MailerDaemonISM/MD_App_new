@@ -248,7 +248,7 @@ const HomeScreen = () => {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
                 {item.images.slice(0, 3).map((img, idx) => (
                   <View key={idx} style={{ position: "relative", marginRight: 8 }}>
-                    <Image source={{ uri: img.asset.url }} style={{ width: 70, height: 70, borderRadius: 10 }} />
+                    <Image source={{ uri: img?.asset?.url }} style={{ width: 70, height: 70, borderRadius: 10 }} />
                     {idx === 2 && item.images.length > 3 && (
                       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, justifyContent: 'center', alignItems: 'center' }]}>
                         <Text style={{ color: '#fff', fontWeight: 'bold' }}>+{item.images.length - 3}</Text>
@@ -328,7 +328,7 @@ const HomeScreen = () => {
               <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
               {selectedPost?.images?.map((img, i) => (
                 <TouchableOpacity key={i} onPress={() => {setImageViewerIndex(i); setIsImageViewerVisible(true);}}>
-                  <Image source={{ uri: img.asset.url }} style={{ width: '100%', height: 200, marginBottom: 10, borderRadius: 10 }} />
+                  <Image source={{ uri: img?.asset?.url }} style={{ width: '100%', height: 200, marginBottom: 10, borderRadius: 10 }} />
                 </TouchableOpacity>
               ))}
               <Text style={styles.modalDescription}>
@@ -341,7 +341,7 @@ const HomeScreen = () => {
 
       {isImageViewerVisible && (
         <ImageViewing
-          images={selectedPost?.images?.map(img => ({ uri: img.asset.url })) || []}
+          images={selectedPost?.images?.map(img => ({ uri: img?.asset?.url })) || []}
           imageIndex={imageViewerIndex}
           visible={isImageViewerVisible}
           onRequestClose={() => setIsImageViewerVisible(false)}

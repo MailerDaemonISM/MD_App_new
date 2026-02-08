@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ImageViewing from "react-native-image-viewing";
 import { useMemo } from 'react';
 import {
   View,
@@ -56,17 +57,15 @@ const getTimeAgo = (dateString) => {
 
 // --- COMPONENT: IMAGE CAROUSEL WITH DOTS ---
 // --- UPDATED COMPONENT: IMAGE CAROUSEL WITH SNAP EFFECT ---
-const ImageCarousel = ({ images, modalMode = false }) => {
+// --- COMPONENT: IMAGE CAROUSEL WITH SNAP EFFECT + IMAGE VIEWER ---
+const ImageCarousel = ({ images, modalMode = false, onImagePress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const carouselWidth = modalMode ? width - 32 : width;
 
-  // We use a debounce-like logic to only update the index when the scroll has settled
   const handleScroll = (event) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / carouselWidth);
-    if (index !== activeIndex) {
-      setActiveIndex(index);
-    }
+    if (index !== activeIndex) setActiveIndex(index);
   };
 
   return (
@@ -74,45 +73,36 @@ const ImageCarousel = ({ images, modalMode = false }) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        pagingEnabled={true}
+        pagingEnabled
         snapToInterval={carouselWidth}
-        snapToAlignment="start" // Changed to start for smoother locking
-        decelerationRate="fast" // High friction for a snappy feel
-        onMomentumScrollEnd={handleScroll} // Calculate index ONLY after swipe finishes
+        snapToAlignment="start"
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
-        disableIntervalMomentum={true}
-        removeClippedSubviews={true} // Performance optimization for images
+        disableIntervalMomentum
       >
         {images.map((url, idx) => (
-          <Image
-            key={idx}
-            source={{ uri: url }}
-            style={[
-              styles.postImage,
-              { width: carouselWidth, height: modalMode ? 300 : 280 }
-            ]}
-            resizeMode="cover"
-          />
+          <TouchableOpacity key={idx} activeOpacity={0.9} onPress={() => onImagePress(idx)}>
+            <Image
+              source={{ uri: url }}
+              style={[styles.postImage, { width: carouselWidth, height: modalMode ? 300 : 280 }]}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* PAGINATION DOTS */}
       {images.length > 1 && (
         <View style={styles.paginationContainer}>
           {images.map((_, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.paginationDot,
-                idx === activeIndex ? styles.paginationDotActive : null
-              ]}
-            />
+            <View key={idx} style={[styles.paginationDot, idx === activeIndex && styles.paginationDotActive]} />
           ))}
         </View>
       )}
     </View>
   );
 };
+
 
 // 1. Recursive Component for Comment Threads
 const CommentThread = ({ comment, onReply, onDelete, currentUserId, depth = 0 }) => {
@@ -172,6 +162,10 @@ export default function RedditScreen() {
   const topListRef = useRef(null);
   const queryClient = useQueryClient();
   const flatListRef = useRef(null); // Ref for "Jump to Top"
+
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+  const [viewerImages, setViewerImages] = useState([]);
 
   const [filterType, setFilterType] = useState('new');
   const [refreshing, setRefreshing] = useState(false);
@@ -460,7 +454,7 @@ export default function RedditScreen() {
 
       Alert.alert(
         "Report Submitted",
-        "Team Mailer Daemon will review your report request take necessary actions within 24 hours. Thanks for keeping the community safe!"
+        "Team Mailer Daemon will review your report request and take necessary actions within 24 hours. Thanks for keeping the community safe!"
       );
     } catch (err) {
       Alert.alert("Error", "Could not submit report. Please try again later.");
@@ -819,7 +813,15 @@ export default function RedditScreen() {
                 {/* --- IMAGE CAROUSEL WITH DOTS --- */}
                 {item.image_urls && item.image_urls.length > 0 && (
                   <View style={styles.imageScrollContainer}>
-                    <ImageCarousel images={item.image_urls} />
+                    <ImageCarousel
+                      images={item.image_urls}
+                      onImagePress={(index) => {
+                        setViewerImages(item.image_urls.map(url => ({ uri: url })));
+                        setImageViewerIndex(Math.min(index, item.image_urls.length - 1));
+                        setIsImageViewerVisible(true);
+                      }}
+                    />
+
                   </View>
                 )}
 
@@ -948,12 +950,24 @@ export default function RedditScreen() {
           </View>
           <ScrollView style={{ padding: 20 }}>
             <View style={styles.pickerContainer}>
-              <Picker selectedValue={targetSubId} onValueChange={(v) => setTargetSubId(v)}>
-                {communities?.map(s => <Picker.Item key={s.id} label={`r/${s.slug}`} value={s.id} />)}
+              <Picker
+                selectedValue={targetSubId}
+                onValueChange={(v) => setTargetSubId(v)}
+                dropdownIconColor="#1e293b" // Ensures the arrow is visible
+                mode="dropdown"
+              >
+                {communities?.map(s => (
+                  <Picker.Item
+                    key={s.id}
+                    label={`r/${s.slug}`}
+                    value={s.id}
+                    color="#1e293b" // FORCES text color to be dark in production
+                  />
+                ))}
               </Picker>
             </View>
-            <TextInput placeholder="Title" style={styles.titleInput} value={title} onChangeText={setTitle} />
-            <TextInput placeholder="What's on your mind? (Markdown supported)" style={styles.bodyInput} value={content} onChangeText={setContent} multiline />
+            <TextInput placeholder="Title" placeholderTextColor="#666" style={styles.titleInput} value={title} onChangeText={setTitle} />
+            <TextInput placeholder="What's on your mind? (Markdown supported)" placeholderTextColor="#666" style={styles.bodyInput} value={content} onChangeText={setContent} multiline />
 
             <TouchableOpacity style={styles.imagePickerBtn} onPress={pickImages}>
               <Text style={{ color: '#0079D3', fontWeight: '700' }}>+ Add Photos</Text>
@@ -997,7 +1011,16 @@ export default function RedditScreen() {
                 {/* --- CAROUSEL IN MODAL --- */}
                 {selectedPost?.image_urls && selectedPost.image_urls.length > 0 && (
                   <View style={[styles.imageScrollContainer, { marginHorizontal: 0, borderRadius: 8, overflow: 'hidden' }]}>
-                    <ImageCarousel images={selectedPost.image_urls} modalMode={true} />
+                    <ImageCarousel
+                      images={selectedPost.image_urls}
+                      modalMode={true}
+                      onImagePress={(index) => {
+                        setViewerImages(selectedPost.image_urls.map(url => ({ uri: url })));
+                        setImageViewerIndex(Math.min(index, selectedPost.image_urls.length - 1));
+                        setIsImageViewerVisible(true);
+                      }}
+                    />
+
                   </View>
                 )}
 
@@ -1015,7 +1038,7 @@ export default function RedditScreen() {
           <View style={styles.commentInputWrapper}>
             {parentComment && (
               <View style={styles.replyingBar}>
-                <Text style={styles.replyingText}>Replying to u/{parentComment.author_name}</Text>
+                <Text style={styles.replyingText}>Replying to u/{parentComment.is_anonymous ? 'anonymous' : parentComment.author_name}</Text>
                 <TouchableOpacity onPress={() => setParentComment(null)}><Text style={{ color: '#FF4500' }}>Cancel</Text></TouchableOpacity>
               </View>
             )}
@@ -1114,6 +1137,13 @@ export default function RedditScreen() {
           </View>
         </View>
       </Modal>
+      <ImageViewing
+        images={viewerImages}
+        imageIndex={imageViewerIndex}
+        visible={isImageViewerVisible}
+        onRequestClose={() => setIsImageViewerVisible(false)}
+        onToggleBarsVisible={() => {}}
+      />
     </SafeAreaView>
   );
 }
