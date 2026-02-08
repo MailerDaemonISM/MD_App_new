@@ -60,7 +60,7 @@ const getTimeAgo = (dateString) => {
 // --- UTILITY: INSERT ADS EVERY 4 POSTS ---
 const insertAdsIntoFeed = (posts) => {
   if (!posts || posts.length === 0) return [];
-  
+
   const feedWithAds = [];
   let postCount = 0;
   let adCount = 0; // To alternate between banner and video ads
@@ -73,14 +73,14 @@ const insertAdsIntoFeed = (posts) => {
     if (postCount === 4 && index < posts.length - 1) {
       // Alternate between banner ads (even) and video ads (odd)
       const isVideoAd = adCount % 2 === 1;
-      
+
       feedWithAds.push({
         id: `ad-${index}-${adCount}`,
         type: isVideoAd ? 'video_ad' : 'banner_ad',
         isAd: true,
         isVideoAd: isVideoAd,
       });
-      
+
       adCount++;
       postCount = 0;
     }
@@ -90,18 +90,14 @@ const insertAdsIntoFeed = (posts) => {
 };
 
 // --- COMPONENT: IMAGE CAROUSEL WITH DOTS ---
-// --- UPDATED COMPONENT: IMAGE CAROUSEL WITH SNAP EFFECT ---
-const ImageCarousel = ({ images, modalMode = false }) => {
+const ImageCarousel = ({ images, modalMode = false, onImagePress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const carouselWidth = modalMode ? width - 32 : width;
 
-  // We use a debounce-like logic to only update the index when the scroll has settled
   const handleScroll = (event) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / carouselWidth);
-    if (index !== activeIndex) {
-      setActiveIndex(index);
-    }
+    if (index !== activeIndex) setActiveIndex(index);
   };
 
   return (
@@ -109,29 +105,30 @@ const ImageCarousel = ({ images, modalMode = false }) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        pagingEnabled={true}
+        pagingEnabled
         snapToInterval={carouselWidth}
-        snapToAlignment="start" // Changed to start for smoother locking
-        decelerationRate="fast" // High friction for a snappy feel
-        onMomentumScrollEnd={handleScroll} // Calculate index ONLY after swipe finishes
-        scrollEventThrottle={16}
-        disableIntervalMomentum={true}
-        removeClippedSubviews={true} // Performance optimization for images
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleScroll}
       >
         {images.map((url, idx) => (
-          <Image
+          <TouchableOpacity
             key={idx}
-            source={{ uri: url }}
-            style={[
-              styles.postImage,
-              { width: carouselWidth, height: modalMode ? 300 : 280 }
-            ]}
-            resizeMode="cover"
-          />
+            activeOpacity={0.9}
+            onPress={() => onImagePress && onImagePress(idx)}
+          >
+            <Image
+              source={{ uri: url }}
+              style={{
+                width: carouselWidth,
+                height: modalMode ? 300 : 280,
+                backgroundColor: '#F6F7F8'
+              }}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* PAGINATION DOTS */}
       {images.length > 1 && (
         <View style={styles.paginationContainer}>
           {images.map((_, idx) => (
@@ -139,7 +136,7 @@ const ImageCarousel = ({ images, modalMode = false }) => {
               key={idx}
               style={[
                 styles.paginationDot,
-                idx === activeIndex ? styles.paginationDotActive : null
+                idx === activeIndex && styles.paginationDotActive
               ]}
             />
           ))}
@@ -148,6 +145,7 @@ const ImageCarousel = ({ images, modalMode = false }) => {
     </View>
   );
 };
+
 
 // 1. Recursive Component for Comment Threads
 const CommentThread = ({ comment, onReply, onDelete, currentUserId, depth = 0 }) => {
@@ -1074,8 +1072,8 @@ export default function RedditScreen() {
                       images={selectedPost.image_urls}
                       modalMode={true}
                       onImagePress={(index) => {
-                        setViewerImages(selectedPost.image_urls.map(url => ({ uri: url })));
-                        setImageViewerIndex(Math.min(index, selectedPost.image_urls.length - 1));
+                        setViewerImages(item.image_urls.map(url => ({ uri: url })));
+                        setImageViewerIndex(Math.min(index, item.image_urls.length - 1));
                         setIsImageViewerVisible(true);
                       }}
                     />
@@ -1106,11 +1104,12 @@ export default function RedditScreen() {
               <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
                 <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
               </TouchableOpacity>
-            <View style={styles.inputRow}>
-              <TextInput placeholder="Add a comment..." style={styles.commentInput} value={replyText} onChangeText={setReplyText} multiline />
-              <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
-                <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
-              </TouchableOpacity>
+              <View style={styles.inputRow}>
+                <TextInput placeholder="Add a comment..." style={styles.commentInput} value={replyText} onChangeText={setReplyText} multiline />
+                <TouchableOpacity onPress={handlePostComment} style={styles.sendBtn}>
+                  <Text style={{ color: '#0079D3', fontWeight: '800' }}>Post</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -1206,7 +1205,7 @@ export default function RedditScreen() {
         imageIndex={imageViewerIndex}
         visible={isImageViewerVisible}
         onRequestClose={() => setIsImageViewerVisible(false)}
-        onToggleBarsVisible={() => {}}
+        onToggleBarsVisible={() => { }}
       />
     </SafeAreaView>
   );
