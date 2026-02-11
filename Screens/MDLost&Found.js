@@ -1,321 +1,247 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
-  StyleSheet,
   View,
   Text,
-  TextInput,
-  Image,
+  FlatList,
+  StyleSheet,
   TouchableOpacity,
-  Platform,
+  Modal,
   Alert,
+  Linking,
   ScrollView,
+  Image,
+  Pressable,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { Dropdown } from "react-native-element-dropdown";
-import { setLostFoundData } from "../api/lost_found";
+import { Ionicons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/Ionicons";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
-const data = [
-  { label: "Lost", value: "lost" },
-  { label: "Found", value: "found" },
-];
+import LostFoundForm from "../components/lostnfoundform";
+import { client } from "../sanity"; // your sanity client
 
-const MDLostnFound = () => {
-  const [lostorfound, setSelectedValue] = useState("");
-  const [name, setname] = useState("");
-  const [description, setDesc] = useState("");
-  const [location, setlocation] = useState("");
-  const [contact, setcontact] = useState("");
-  const [title, setTitle] = useState("");
-  const [uri, seturi] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+export default function MDLostnFound() {
+  const [posts, setPosts] = useState([]); // store all #MDLostAndFound posts
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null); // for post details modal
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch #MDLostAndFound posts from Sanity
+  const fetchPosts = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+    try {
+      const query = `*[_type == "post" && "${"#MDLostAndFound"}" in hashtags[]->.hashtag] | order(_createdAt desc){
+        _id, title, body, images[]{asset->{url}}, _createdAt, hashtags[]->{ _id, hashtag }
+      }`;
+      const result = await client.fetch(query);
+
+      // Remove duplicates if needed
+      const uniqueResult = Array.from(new Map(result.map((p) => [p._id, p])).values());
+      setPosts(uniqueResult);
+    } catch (error) {
+      console.error("❌ Error fetching posts:", error);
+      Alert.alert("Error", "Failed to load posts");
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    requestPermissions();
+    fetchPosts();
+    const interval = setInterval(fetchPosts, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
   }, []);
 
-  const requestPermissions = async () => {
-    if (Platform.OS !== "web") {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Sorry, we need camera roll permissions to upload images!"
-        );
-      }
-    }
+  const handleShare = (item) => {
+    Alert.alert("Share", `Share: ${item.title}`);
   };
 
-  const pickImageAsync = async () => {
-    try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        seturi(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image. Please try again.");
-    }
+  // Convert Sanity Portable Text to plain string
+  const getPlainText = (blocks) => {
+    if (!blocks) return "";
+    return blocks
+      .map((block) => block.children?.map((child) => child.text).join("") || "")
+      .join("\n\n");
   };
 
-  const handleSubmit = async () => {
-    if (isUploading) return;
-
-    // Validations
-    if (!name.trim()) {
-      Alert.alert("Validation Error", "Name is required");
-      return;
-    }
-    if (!title.trim()) {
-      Alert.alert("Validation Error", "Title is required");
-      return;
-    }
-    if (!lostorfound) {
-      Alert.alert("Validation Error", "Please select Lost / Found");
-      return;
-    }
-    if (!contact.match(/^\d{10}$/)) {
-      Alert.alert("Validation Error", "Enter a valid 10-digit phone number");
-      return;
-    }
-
-    setIsUploading(true);
-
-    const res = {
-      type: lostorfound,
-      body: description,
-      name,
-      location,
-      contact,
-      uri,
-      approved: false,
-      title,
-    };
-
-    try {
-      await setLostFoundData(res, () => {
-        setSelectedValue("");
-        setname("");
-        setDesc("");
-        setlocation("");
-        setcontact("");
-        setTitle("Lost Object");
-        seturi("");
-      });
-      Alert.alert("Success", "Your post has been submitted successfully and will be reviewed by a member of our team!");
-    } catch (error) {
-      console.error("Submission error:", error);
-    } finally {
-      setIsUploading(false);
-    }
+  const renderItem = ({ item }) => {
+    const description = getPlainText(item.body);
+    return (
+      <TouchableOpacity
+        style={styles.cardWrapper}
+        onPress={() => setSelectedPost(item)}
+      >
+        <View style={styles.card}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.description} numberOfLines={2}>
+            {description}
+          </Text>
+          <Text style={styles.hashtag}>#MDLostAndFound</Text>
+          <Text style={styles.time}>
+            {new Date(item._createdAt).toLocaleDateString()}{" "}
+            {new Date(item._createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+        </View>
+        <View style={styles.sideBar}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.instagram.com/md_iit_dhanbad?igsh=MXRjbml1emxmcmQwMg=="
+              )
+            }
+          >
+            <FontAwesome5 name="instagram" size={18} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => handleShare(item)}
+          >
+            <Icon name="share-social-outline" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.headerText}>📌 Lost & Found</Text>
-        <Text style={styles.subText}>Fill out the details below</Text>
+    <View style={{ flex: 1, backgroundColor: "#f6f6f6" }}>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        contentContainerStyle={{ padding: 16 }}
+        refreshing={isLoading}
+        onRefresh={() => fetchPosts()}
+      />
 
-        <TextInput
-          placeholder="Your Name"
-          style={styles.input}
-          onChangeText={setname}
-          value={name}
+      {/* ADD POST BUTTON */}
+      <TouchableOpacity style={styles.fab} onPress={() => setShowFormModal(true)}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
+      {/* MODAL: Add Post */}
+      <Modal
+        visible={showFormModal}
+        animationType="slide"
+        onRequestClose={() => setShowFormModal(false)}
+      >
+        <LostFoundForm
+          onClose={() => setShowFormModal(false)}
+          onSuccess={() => fetchPosts(false)}
         />
+      </Modal>
 
-        <TextInput
-          placeholder="Title (e.g. Lost Wallet)"
-          placeholderTextColor="#666"
-          style={styles.input}
-          onChangeText={setTitle}
-          value={title}
-        />
-
-        <TextInput
-          placeholder="Short Description"
-          placeholderTextColor="#666"
-          style={[styles.input, styles.descriptionInput]}
-          value={description}
-          multiline
-          numberOfLines={3}
-          onChangeText={(e) => {
-            const wordcounter = e.trim().split(/\s+/).length;
-            if (wordcounter <= 30) {
-              setDesc(e);
-            } else {
-              Alert.alert("Too Long", "Please keep description brief.");
-            }
-          }}
-        />
-
-        <Dropdown
-          style={styles.dropdown}
-          data={data}
-          labelField="label"
-          valueField="value"
-          placeholder="Lost / Found"
-          placeholderTextColor="#666"
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.placeholderStyle}
-          value={lostorfound}
-          onChange={(item) => setSelectedValue(item.value)}
-        />
-
-        <TextInput
-          placeholder="Location (e.g. Library, Hostel)"
-          placeholderTextColor="#666"
-          style={styles.input}
-          onChangeText={setlocation}
-          value={location}
-        />
-
-        <TextInput
-          placeholder="Contact Number"
-          placeholderTextColor="#666"
-          style={styles.input}
-          keyboardType="numeric"
-          onChangeText={setcontact}
-          value={contact}
-        />
-
-        {uri ? (
-          <Image source={{ uri }} style={styles.image} />
-        ) : (
-          <TouchableOpacity
-            onPress={pickImageAsync}
-            style={styles.uploadBox}
-            disabled={isUploading}
-          >
-            <Text style={styles.uploadBoxText}>📷 Upload an Image</Text>
-          </TouchableOpacity>
-        )}
-
-        {uri ? (
-          <TouchableOpacity
-            onPress={pickImageAsync}
-            style={styles.changeImageButton}
-          >
-            <Text style={styles.changeImageText}>Change Image</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        <TouchableOpacity
-          style={[styles.submitButton, isUploading && styles.disabledButton]}
-          onPress={handleSubmit}
-          disabled={isUploading}
-        >
-          <Text style={styles.submitButtonText}>
-            {isUploading ? "Submitting..." : "Submit Post"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      {/* MODAL: Post Details */}
+      <Modal
+        visible={!!selectedPost}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedPost(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedPost(null)} />
+          <View style={styles.modalContent}>
+            <ScrollView>
+              <Text style={styles.modalTitle}>{selectedPost?.title}</Text>
+              {selectedPost?.images?.map((img, i) => (
+                <Image
+                  key={i}
+                  source={{ uri: img.asset.url }}
+                  style={{ width: "100%", height: 200, marginBottom: 10, borderRadius: 10 }}
+                />
+              ))}
+              <Text style={styles.modalDescription}>
+                {Array.isArray(selectedPost?.body)
+                  ? selectedPost.body
+                      .map((b) => b.children?.map((c) => c.text).join(""))
+                      .join("\n\n")
+                  : selectedPost?.body}
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
-};
-
-export default MDLostnFound;
+}
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: "#f9fafb",
+  cardWrapper: {
+    flexDirection: "row",
+    marginBottom: 14,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    elevation: 2,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
+    flex: 1,
+    padding: 14,
   },
-  headerText: {
-    fontSize: 26,
+  title: {
+    fontSize: 15,
     fontWeight: "700",
-    textAlign: "center",
+    color: "#111",
     marginBottom: 4,
-    color: "#1e293b",
   },
-  subText: {
-    fontSize: 14,
-    color: "#64748b",
-    textAlign: "center",
-    marginBottom: 20,
+  description: {
+    fontSize: 13,
+    color: "#444",
+    marginBottom: 6,
   },
-  input: {
-    marginBottom: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 10,
-    fontSize: 15,
-    backgroundColor: "#f8fafc",
+  hashtag: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 4,
   },
-  descriptionInput: {
-    height: 80,
-    textAlignVertical: "top",
+  time: {
+    fontSize: 11,
+    color: "#aaa",
   },
-  dropdown: {
-    borderColor: "#cbd5e1",
-    borderWidth: 1,
-    borderRadius: 10,
-    height: 48,
-    paddingHorizontal: 8,
-    marginBottom: 16,
-    backgroundColor: "#f8fafc",
+  sideBar: {
+    width: 44,
+    backgroundColor: "#EEA052",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingVertical: 12,
   },
-  placeholderStyle: {
-    color: "#64748b",
-    fontSize: 15,
-    placeholderTextColor:"#666"
+  iconButton: {
+    paddingVertical: 6,
   },
-  uploadBox: {
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "#94a3b8",
-    borderRadius: 12,
-    height: 140,
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    backgroundColor: "#22c55e",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 12,
-    backgroundColor: "#f1f5f9",
+    elevation: 5,
   },
-  uploadBoxText: {
-    color: "#475569",
-    fontSize: 16,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
   },
-  image: {
-    height: 200,
+  modalContent: {
+    margin: 20,
+    backgroundColor: "#fff",
     borderRadius: 12,
-    marginVertical: 12,
+    padding: 16,
+    maxHeight: "80%",
   },
-  changeImageButton: {
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  changeImageText: {
-    color: "#3b82f6",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  submitButton: {
-    backgroundColor: "#3b82f6",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 18,
     fontWeight: "700",
+    marginBottom: 12,
   },
-  disabledButton: {
-    backgroundColor: "#94a3b8",
+  modalDescription: {
+    fontSize: 14,
+    color: "#444",
   },
 });

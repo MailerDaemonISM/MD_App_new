@@ -313,11 +313,22 @@ const hasImages = validImages.length > 0;
     );
   };
 
-  const filteredPosts = allPosts.filter(post => {
-    const matchesSearch = post.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedHashtag === "All" || post.hashtags?.some(t => t.hashtag === selectedHashtag);
-    return matchesSearch && matchesTag;
-  });
+ const filteredPosts = allPosts.filter(post => {
+  const matchesSearch = post.title?.toLowerCase().includes(searchQuery.toLowerCase());
+  const matchesTag = selectedHashtag === "All" || post.hashtags?.some(t => t.hashtag === selectedHashtag);
+
+  const isTemporary = post.hashtags?.some(t => t.hashtag === "#MDLostAndFound");
+  let isNotExpired = true;
+
+  if (isTemporary) {
+    const createdAt = new Date(post._createdAt); 
+    const now = new Date();
+    const secondsSinceCreation = (now - createdAt) / (1000* 60* 60); 
+    isNotExpired = secondsSinceCreation < 24; 
+  }
+
+  return matchesSearch && matchesTag && isNotExpired;
+});
 
   const postsToRender = (searchQuery || selectedHashtag !== "All") ? filteredPosts : visiblePosts;
   const allHashtags = Array.from(new Set(allPosts.flatMap(p => p.hashtags?.map(t => t.hashtag) || [])));
