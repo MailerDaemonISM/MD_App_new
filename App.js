@@ -21,6 +21,7 @@ import Clubs from "./Screens/clubs";
 import { useEffect } from "react";
 import SubredditScreen from "./Screens/SubredditScreen";
 import SignInScreen from "./Screens/sign-in";
+import { OneSignal } from "react-native-onesignal";
 
 import { ClerkProvider, SignedIn, SignedOut } from "@clerk/clerk-expo";
 import { tokenCache } from "./utils/cache";
@@ -34,6 +35,7 @@ import { supabase } from "./api/supabase";
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
+
 
 
 // Drawer navigator for signed-in users
@@ -76,6 +78,16 @@ function AuthStack() {
 const clerkFrontendApi = "auth.appmailerdaemon.online";
 
 export default function App() {
+
+
+//notif
+
+  React.useEffect(() => {
+   OneSignal.initialize("0ba6ad7c-e7c9-4ade-893c-2ce28b53cf70");
+
+  OneSignal.Notifications.requestPermission(true);
+
+  }, []);
 console.log("init2");
 
   // Initialize Mobile Ads SDK

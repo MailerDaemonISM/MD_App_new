@@ -59,62 +59,52 @@
       ]
     },
     "plugins": [
-
-         [
+  [
     "react-native-google-mobile-ads",
     {
       "androidAppId": "ca-app-pub-9386844195611964~1740942446"
     }
   ],
 
-      "expo-image-picker",
-      "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/md_logo.png",
-          "color": "#FF6600",
-          "mode": "production"
-        }
-      ],
-      [
-        "expo-maps",
-        {
-          "requestLocationPermission": "true",
-          "locationPermission": "Allow ${PRODUCT_NAME} to use your location"
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "2.0.21",
-            "extraParams": {
-              "queries": [
-                {
-                  "intent": {
-                    "action": "android.intent.action.VIEW",
-                    "data": {
-                      "scheme": "https"
-                    }
-                  }
-                },
-                {
-                  "intent": {
-                    "action": "android.intent.action.VIEW",
-                    "data": {
-                      "scheme": "http"
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        }
-      ],
-      "expo-router",
-      "expo-video"
-    ],
+  [
+    "onesignal-expo-plugin",
+    {
+      "mode": "development"
+    }
+  ],
+
+  "expo-image-picker",
+  "expo-secure-store",
+
+  [
+    "expo-notifications",
+    {
+      "icon": "./assets/md_logo.png",
+      "color": "#FF6600",
+      "mode": "production"
+    }
+  ],
+
+  [
+    "expo-maps",
+    {
+      "requestLocationPermission": "true",
+      "locationPermission": "Allow ${PRODUCT_NAME} to use your location"
+    }
+  ],
+
+  [
+    "expo-build-properties",
+    {
+      "android": {
+        "kotlinVersion": "2.0.21"
+      }
+    }
+  ],
+
+  "expo-router",
+  "expo-video"
+],
     "extra": {
       "eas": {
         "projectId": "67ca0aa9-492d-41f1-bbdb-6f8c16d7b345"

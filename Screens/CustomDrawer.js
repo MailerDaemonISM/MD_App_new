@@ -72,7 +72,7 @@ const CustomDrawerContent = (props) => {
             />
             <NavItem
               source={require("../assets/reddit.png")}
-              label="Reddit"
+              label="ISM Dairies"
               onPress={() => props.navigation.navigate("reddit")}
             />
             <NavItem
