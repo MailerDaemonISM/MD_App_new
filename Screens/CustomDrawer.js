@@ -1,54 +1,53 @@
+// ============================================================
+// FILE: Screens/CustomDrawer.js  (REPLACE your existing file)
+// Only 1 change from your original:
+//   - Added a "Marketplace" NavItem (marked NEW below)
+// ============================================================
+
 import { useAuth } from "@clerk/clerk-expo";
 import { Text, Image, View, TouchableOpacity, Linking, StyleSheet } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useUser } from "@clerk/clerk-expo";
 import { Alert } from "react-native";
 
-
 const CustomDrawerContent = (props) => {
   const { signOut } = useAuth();
-  const { user } = useUser();
+  const { user }    = useUser();
 
-  const open_institute_web = () => {
-    Linking.openURL("https://www.iitism.ac.in/");
-  };
-  const open_ark_portal = () => {
-    Linking.openURL("https://ark.iitism.ac.in/");
-  };
+  const open_institute_web = () => Linking.openURL("https://www.iitism.ac.in/");
+  const open_ark_portal    = () => Linking.openURL("https://ark.iitism.ac.in/");
 
   const handleLogout = () => {
-  Alert.alert(
-    "Logout",
-    "Are you sure you want to logout?",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await signOut();
-          } catch (err) {
-            console.error("Logout failed", err);
-          }
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try { await signOut(); }
+            catch (err) { console.error("Logout failed", err); }
+          },
         },
-      },
-    ],
-    { cancelable: true }
-  );
-};
+      ],
+      { cancelable: true }
+    );
+  };
 
   return (
     <View style={{ flex: 1 }}>
       <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ flex: 1 }}>
-          {/* Header */}
+
+          {/* ── Header ────────────────────────────────────── */}
           <View style={styles.headerContainer}>
             <Image source={require("../assets/md.jpg")} style={styles.headerImage} />
             <Text style={styles.headerTitle}>Mailer Daemon</Text>
           </View>
 
-          {/* Navigation Items */}
+          {/* ── Main Navigation ───────────────────────────── */}
           <View style={styles.navSection}>
             <NavItem
               source={require("../assets/home.png")}
@@ -74,7 +73,6 @@ const CustomDrawerContent = (props) => {
               source={require("../assets/clubs.png")}
               label="Clubs & NGOs"
               onPress={() => props.navigation.navigate("clubs")}
-        
             />
             <NavItem
               source={require("../assets/lostandfound.png")}
@@ -86,6 +84,14 @@ const CustomDrawerContent = (props) => {
               label="Placementor"
               onPress={() => props.navigation.navigate("Placementor")}
             />
+
+            {/* ✅ NEW — Marketplace entry */}
+            <NavItem
+              source={{ uri: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png" }}
+              label="Marketplace"
+              onPress={() => props.navigation.navigate("Marketplace")}
+            />
+
             <NavItem
               source={require("../assets/save-instagram.png")}
               label="Saved Posts"
@@ -93,7 +99,7 @@ const CustomDrawerContent = (props) => {
             />
           </View>
 
-          {/* Institute Links */}
+          {/* ── Institute Links ───────────────────────────── */}
           <View style={styles.navSection}>
             <NavItem
               source={require("../assets/institution.png")}
@@ -107,7 +113,7 @@ const CustomDrawerContent = (props) => {
             />
           </View>
 
-          {/* About and Contact */}
+          {/* ── About & Contact ───────────────────────────── */}
           <View style={styles.navSectionWithoutBorder}>
             <NavItem
               source={require("../assets/aboutUs.png")}
@@ -120,10 +126,11 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("ImportantContacts")}
             />
           </View>
+
         </View>
       </DrawerContentScrollView>
 
-      {/* User Section - Fixed at Bottom */}
+      {/* ── User section (fixed at bottom) ───────────────── */}
       <View style={styles.bottomUserSection}>
         <Image
           source={user?.imageUrl ? { uri: user.imageUrl } : null}
@@ -132,7 +139,6 @@ const CustomDrawerContent = (props) => {
         <Text style={styles.userName}>
           {user?.fullName || user?.username || "Anonymous"}
         </Text>
-
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.buttonText}>LogOut</Text>
         </TouchableOpacity>
@@ -141,8 +147,6 @@ const CustomDrawerContent = (props) => {
   );
 };
 
-
-// NavItem subcomponent for reuse
 const NavItem = ({ source, label, onPress }) => (
   <View style={styles.navItemContainer}>
     <Image source={source} style={styles.navIcon} />
@@ -156,99 +160,36 @@ export default CustomDrawerContent;
 
 const styles = StyleSheet.create({
   headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: "#d1d5db", // gray-300
-    height: 80,
-    paddingHorizontal: 12,
+    flexDirection: "row", alignItems: "center",
+    marginTop: 20, marginBottom: 12,
+    borderBottomWidth: 2, borderBottomColor: "#d1d5db",
+    height: 80, paddingHorizontal: 12,
   },
-  headerImage: {
-  height: 50,
-  width: 50,
-  borderRadius:10,  
-  resizeMode: "contain", 
-  opacity: 0.9,
-},
-
-  headerTitle: {
-    fontWeight: "bold",
-    fontSize: 26,
-    marginLeft: 12,
-    color: "#000",
-  },
+  headerImage: { height: 50, width: 50, borderRadius: 10, resizeMode: "contain", opacity: 0.9 },
+  headerTitle: { fontWeight: "bold", fontSize: 26, marginLeft: 12, color: "#000" },
   navSection: {
-    marginTop: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: "#d1d5db",
-    marginHorizontal: 8,
-    paddingBottom: 12,
-  },navSectionWithoutBorder: {
-    marginTop: 20,
-    marginHorizontal: 8,
-    paddingBottom: 12,
+    marginTop: 20, borderBottomWidth: 2, borderBottomColor: "#d1d5db",
+    marginHorizontal: 8, paddingBottom: 12,
   },
+  navSectionWithoutBorder: { marginTop: 20, marginHorizontal: 8, paddingBottom: 12 },
   navItemContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 28,
-    marginBottom: 12,
-    paddingLeft: 20,
-    paddingBottom: 3,
+    flexDirection: "row", alignItems: "center",
+    height: 28, marginBottom: 12, paddingLeft: 20, paddingBottom: 3,
   },
-  navIcon: {
-  height: 25,
-  width: 25,
-  marginRight: 4,
-  resizeMode: "contain", 
-  opacity: 0.8, // make it a bit clearer
-},
-
-  navLabel: {
-    fontSize: 16,
-    marginLeft: 16,
-    color: "#6b7280", // text-gray-400
-  },
+  navIcon:  { height: 25, width: 25, marginRight: 4, resizeMode: "contain", opacity: 0.8 },
+  navLabel: { fontSize: 16, marginLeft: 16, color: "#6b7280" },
   bottomUserSection: {
-    borderTopWidth: 1,
-    borderTopColor: "#d1d5db",
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    backgroundColor: "#fff",
+    borderTopWidth: 1, borderTopColor: "#d1d5db",
+    paddingVertical: 20, paddingHorizontal: 20,
+    alignItems: "center", backgroundColor: "#fff",
   },
-  userImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  userImage: { width: 80, height: 80, borderRadius: 40 },
+  userName:  { marginTop: 12, fontSize: 18, fontWeight: "600", textAlign: "center", color: "#000" },
+  logoutButton: {
+    backgroundColor: "#db4437", paddingVertical: 12, paddingHorizontal: 48,
+    borderRadius: 12, marginTop: 16, alignItems: "center", justifyContent: "center",
+    minWidth: 140, shadowColor: "#000", shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
   },
-  userName: {
-    marginTop: 12,
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-    color: "#000",
-  },
- logoutButton: {
-  backgroundColor: "#db4437",
-  paddingVertical: 12,
-  paddingHorizontal: 48,
-  borderRadius: 12,
-  marginTop: 16,
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 140,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.15,
-  shadowRadius: 6,
-  elevation: 3,
-},
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
