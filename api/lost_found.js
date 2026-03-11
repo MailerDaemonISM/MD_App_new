@@ -84,3 +84,17 @@ export const setLostFoundData = async (data, onSuccess) => {
     Alert.alert("Upload Failed", error.message || "Something went wrong. Please try again.");
   }
 };
+export const getMDLostFoundPosts = async () => {
+  try {
+    const query = `
+      *[_type == "lost_found"]
+      | order(_createdAt desc)
+    `;
+
+    const res = await client.fetch(query);
+    return res;
+  } catch (error) {
+    console.error("Sanity fetch error:", error);
+    throw error;
+  }
+};

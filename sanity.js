@@ -7,3 +7,20 @@ export const client = createClient({
   apiVersion: "2021-08-29",
   useCdn: false, 
 });
+
+export const fetchSanityUserId = async (clerkId) => {
+  try {
+    // 1. Try to find the user by their clerkId
+    const query = `*[_type == "user" && clerkId == $clerkId][0]._id`;
+    const params = { clerkId };
+    console.log("cid:" + clerkId);
+    let sanityId = await client.fetch(query, params);
+    console.log("sanid:" + sanityId);
+    // 2. If user doesn't exist in Sanity yet, return null 
+    // (Or you can use client.createIfNotExists here if you want to auto-create)
+    return sanityId;
+  } catch (error) {
+    console.error("Sanity Fetch Error:", error);
+    return null;
+  }
+};

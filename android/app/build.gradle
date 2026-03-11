@@ -92,7 +92,7 @@ android {
         applicationId 'com.yourcompany.mdapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
+        versionCode 10
         versionName "1.0.0"
     }
     signingConfigs {
@@ -102,12 +102,6 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        release {
-            storeFile file("$rootDir/app/@mailer-daemon__md-app.jks")
-            storePassword 'b48ec51479f3dca84e40ac8b6c50c1e5'
-            keyAlias 'f006c3780b0ba04a751ec6779cadc8bb'
-            keyPassword 'e8233320ffaf4738ca3c52234ddb382e'
-        }
     }
     buildTypes {
         debug {
@@ -116,7 +110,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

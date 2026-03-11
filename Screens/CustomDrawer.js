@@ -66,9 +66,14 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("AcademicCalendar")}
             />
             <NavItem
-              source={require("../assets/Map.jpg")}
+              source={require("../assets/campus.png")}
               label="Campus Map"
               onPress={() => props.navigation.navigate("map")}
+            />
+            <NavItem
+              source={require("../assets/reddit.png")}
+              label="ISM Dairies"
+              onPress={() => props.navigation.navigate("reddit")}
             />
             <NavItem
               source={require("../assets/clubs.png")}
@@ -82,14 +87,31 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("MDLostnFound")}
             />
             <NavItem
-              source={{ uri: "https://cdn-icons-png.flaticon.com/512/3135/3135768.png" }}
+              source={require("../assets/job-offer.png")}
               label="Placementor"
               onPress={() => props.navigation.navigate("Placementor")}
+            />
+
+            {/* ✅ NEW — Marketplace entry */}
+            <NavItem
+              source={{ uri: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png" }}
+              label="Marketplace"
+              onPress={() => props.navigation.navigate("Marketplace")}
             />
             <NavItem
               source={require("../assets/save-instagram.png")}
               label="Saved Posts"
               onPress={() => props.navigation.navigate("UserScreen")}
+            />
+            <NavItem
+              source={require("../assets/cv.png")}
+              label="Resume Tester"
+              onPress={() => props.navigation.navigate("ATS")}
+            />
+            <NavItem
+              source={require("../assets/track.png")}
+              label="Track Toto"
+              onPress={() => props.navigation.navigate("Track Toto")}
             />
           </View>
 
@@ -115,7 +137,7 @@ const CustomDrawerContent = (props) => {
               onPress={() => props.navigation.navigate("AboutUs")}
             />
             <NavItem
-              source={require("../assets/contactUs.png")}
+              source={require("../assets/contact-mail.png")}
               label="Important Contacts"
               onPress={() => props.navigation.navigate("ImportantContacts")}
             />
