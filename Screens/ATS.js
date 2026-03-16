@@ -9,6 +9,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RewardedInterstitialAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
+//import { API_KEY, gemini_model } from '@env';
+
 
 const { width } = Dimensions.get('window');
 
@@ -17,8 +19,8 @@ const adUnitId = TestIds.REWARDED_INTERSTITIAL;
 const rewardedInterstitial = RewardedInterstitialAd.createForAdRequest(adUnitId);
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI("AIzaSyCTKSVO-v3gQ-75_kXD6ysKj8F3zRsnERU"); 
-const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+const genAI = new GoogleGenerativeAI("AIzaSyA1KR4mbKJEA1H9kmFbGkvIsMIR2Am1s7w"); 
+const model = genAI.getGenerativeModel({model:"gemini-3-flash-preview"});
 
 export default function ATSScreen() {
     const [loading, setLoading] = useState(false);

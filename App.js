@@ -30,7 +30,7 @@ import HomeScreen from "./Screens/HomeScreen";
 import MarketplaceNavigator from "./Screens/Marketplace/MarketplaceNavigator";
 import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
 import { ActivityIndicator, View, StatusBar } from "react-native";
-import TrackingScreen from "./Screens/TrackingScreen";
+//import TrackingScreen from "./Screens/TrackingScreen";
 import { supabase } from "./api/supabase";
 
 const Drawer = createDrawerNavigator();
@@ -60,7 +60,7 @@ function DrawerNavigator() {
       <Drawer.Screen name="ImportantContacts" component={ImportantContacts} />
       <Drawer.Screen name="AboutUs" component={AboutUs} />
       <Drawer.Screen name="Details" component={Details} />
-      <Drawer.Screen name="Track Toto" component={TrackingScreen} />
+      {/* <Drawer.Screen name="Track Toto" component={TrackingScreen} /> */}
       <Drawer.Screen name="reddit" component={SubredditScreen} options={{ title: "Reddit" }}/>
       <Drawer.Screen name="ATS" component={ATSScreen} />
    {/* ✅ NEW — Marketplace (headerShown:false so the inner

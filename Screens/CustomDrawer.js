@@ -108,11 +108,11 @@ const CustomDrawerContent = (props) => {
               label="Resume Tester"
               onPress={() => props.navigation.navigate("ATS")}
             />
-            <NavItem
+            {/* <NavItem
               source={require("../assets/track.png")}
               label="Track Toto"
               onPress={() => props.navigation.navigate("Track Toto")}
-            />
+            /> */}
           </View>
 
           {/* Institute Links */}

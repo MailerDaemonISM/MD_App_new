@@ -224,6 +224,16 @@ export default function RedditScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [parentComment, setParentComment] = useState(null);
+  const [visibleItems, setVisibleItems] = useState([]);
+
+const viewabilityConfig = {
+  itemVisiblePercentThreshold: 50,
+};
+
+const onViewableItemsChanged = useRef(({ viewableItems }) => {
+  const ids = viewableItems.map(v => v.item.id);
+  setVisibleItems(ids);
+});
 
   //check community guidelines only once
   useEffect(() => {
@@ -804,13 +814,16 @@ export default function RedditScreen() {
           ref={flatListRef}
           data={visiblePosts}
           keyExtractor={(item) => item.id}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged.current}
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF4500" />}
           renderItem={({ item }) => {
             // Render Video Ad Component
-            if (item.isVideoAd) {
-              return <VideoAdComponent />;
-            }
+          if (item.isVideoAd) {
+  const isVisible = visibleItems.includes(item.id);
+  return <VideoAdComponent isVisible={isVisible} />;
+}
 
             // Render Banner Ad Component
             if (item.isAd && !item.isVideoAd) {
