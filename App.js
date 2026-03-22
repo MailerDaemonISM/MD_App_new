@@ -32,6 +32,8 @@ import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
 import { ActivityIndicator, View, StatusBar } from "react-native";
 //import TrackingScreen from "./Screens/TrackingScreen";
 import { supabase } from "./api/supabase";
+import useAppUpdate from './utils/useAppUpdate';
+import UpdateModal from './components/updateModal';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -85,6 +87,9 @@ const clerkFrontendApi = "auth.appmailerdaemon.online";
 
 export default function App() {
 
+  const { show, force } = useAppUpdate();
+
+
 
 //notif
 
@@ -122,10 +127,13 @@ console.log("init2");
   }, []);
   
   return (
+    <>
+    <UpdateModal visible={show} force={force} />
     <QueryClientProvider client={queryClient}>
       <ClerkProvider
         publishableKey="pk_live_Y2xlcmsuYXBwbWFpbGVyZGFlbW9uLm9ubGluZSQ"
         frontendApi={clerkFrontendApi}
+        tokenCache={tokenCache}
       >
         <NavigationContainer>
           <StatusBar style="dark" backgroundColor="#ffffff" />
@@ -153,5 +161,6 @@ console.log("init2");
         </NavigationContainer>
       </ClerkProvider>
     </QueryClientProvider>
+    </>
   );
 }

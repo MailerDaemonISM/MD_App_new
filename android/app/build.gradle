@@ -92,7 +92,7 @@ android {
         applicationId 'com.yourcompany.mdapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10
+        versionCode 16
         versionName "1.0.0"
     }
     signingConfigs {

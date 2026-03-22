@@ -15,7 +15,7 @@ import { RewardedInterstitialAd, RewardedAdEventType, TestIds } from 'react-nati
 const { width } = Dimensions.get('window');
 
 // AdMob Rewarded Interstitial Configuration (Using Test ID)
-const adUnitId = TestIds.REWARDED_INTERSTITIAL;
+const adUnitId = 'ca-app-pub-9386844195611964/7638074878';
 const rewardedInterstitial = RewardedInterstitialAd.createForAdRequest(adUnitId);
 
 // Initialize Gemini

@@ -185,7 +185,7 @@ const HomeScreen = () => {
   }, []);
 
 
-const adUnitId = TestIds.BANNER;
+const adUnitId = 'ca-app-pub-9386844195611964/5335072095';
 
 const BannerAdComponent = () => {
   return (

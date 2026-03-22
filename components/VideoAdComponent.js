@@ -2,57 +2,56 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { InterstitialAd, TestIds, AdEventType } from 'react-native-google-mobile-ads';
 
-const adUnitId = TestIds.INTERSTITIAL;
-
-let interstitialAd = null;
-
-const createInterstitialAd = () => {
-  return InterstitialAd.createForAdRequest(adUnitId, {
-    requestNonPersonalizedAdsOnly: true,
-  });
-};
+const adUnitId = 'ca-app-pub-9386844195611964/5832938537';
 
 const VideoAdComponent = ({ isVisible }) => {
   const [adLoaded, setAdLoaded] = useState(false);
   const [adLoading, setAdLoading] = useState(true);
-  const hasShown = useRef(false);
+
+  const interstitialRef = useRef(null);
 
   useEffect(() => {
-    if (!interstitialAd) {
-      interstitialAd = createInterstitialAd();
-    }
+    // ✅ create fresh instance
+    const ad = InterstitialAd.createForAdRequest(adUnitId, {
+      requestNonPersonalizedAdsOnly: true,
+    });
 
-    const loadedListener = interstitialAd.addAdEventListener(
-      AdEventType.LOADED,
-      () => {
-        setAdLoaded(true);
-        setAdLoading(false);
-      }
-    );
+    interstitialRef.current = ad;
 
-    const closedListener = interstitialAd.addAdEventListener(
-      AdEventType.CLOSED,
-      () => {
-        hasShown.current = false;
-        interstitialAd.load();
-      }
-    );
+    const loadListener = ad.addAdEventListener(AdEventType.LOADED, () => {
+      setAdLoaded(true);
+      setAdLoading(false);
+    });
 
-    interstitialAd.load();
+    const closeListener = ad.addAdEventListener(AdEventType.CLOSED, () => {
+      setAdLoaded(false);
+      setAdLoading(true);
+
+      // reload next ad
+      ad.load();
+    });
+
+    const errorListener = ad.addAdEventListener(AdEventType.ERROR, (err) => {
+      console.log('Ad Error:', err);
+      setAdLoading(false);
+    });
+
+    ad.load();
 
     return () => {
-      loadedListener();
-      closedListener();
+      loadListener();
+      closeListener();
+      errorListener();
     };
   }, []);
 
+  // 🔥 Show when visible
   useEffect(() => {
-    if (isVisible && adLoaded && !hasShown.current) {
+    if (isVisible && adLoaded) {
       try {
-        interstitialAd.show();
-        hasShown.current = true;
-      } catch (err) {
-        console.log("Ad show error:", err);
+        interstitialRef.current?.show();
+      } catch (e) {
+        console.log('Show error:', e);
       }
     }
   }, [isVisible, adLoaded]);
@@ -70,7 +69,9 @@ const VideoAdComponent = ({ isVisible }) => {
           <TouchableOpacity
             style={styles.playButton}
             onPress={() => {
-              if (adLoaded) interstitialAd.show();
+              if (adLoaded) {
+                interstitialRef.current?.show();
+              }
             }}
           >
             <Text style={styles.playText}>Watch Sponsored Video</Text>
@@ -81,6 +82,7 @@ const VideoAdComponent = ({ isVisible }) => {
   );
 };
 
+export default VideoAdComponent;
 const styles = StyleSheet.create({
   videoAdContainer: {
     backgroundColor: '#FFF',
@@ -120,5 +122,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-export default VideoAdComponent;

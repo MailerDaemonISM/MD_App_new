@@ -330,6 +330,7 @@ const PlacementList = () => {
         <Picker
           selectedValue={selectedYear}
           style={styles.picker}
+            dropdownIconColor="#333"
           onValueChange={(itemValue) => setSelectedYear(itemValue)}
         >
           <Picker.Item label="2025" value="2025" />
@@ -405,7 +406,7 @@ const styles = StyleSheet.create({
   picker: {
     width: 150,
     backgroundColor: "#fff",
-      color: "#fff",   
+      color: "#333",   
   },
   card: {
     flexDirection: "row",

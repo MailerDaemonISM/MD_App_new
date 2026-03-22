@@ -7,7 +7,7 @@ const NativeAdComponent = () => {
   const [adError, setAdError] = useState(false);
 
   // Using AdMob test banner ad unit ID
-  const AD_UNIT_ID = TestIds.BANNER;
+  const AD_UNIT_ID ='ca-app-pub-9386844195611964/5335072095';
 
   return (
     <View style={styles.adContainer}>
