@@ -7,6 +7,10 @@ const useAppUpdate = () => {
     force: false,
   });
 
+  const dismiss = () => {
+    setUpdateInfo(prev => ({ ...prev, show: false }));
+  };
+
   const isUpdateRequired = (current, latest) => {
     const c = current.split('.').map(Number);
     const l = latest.split('.').map(Number);
@@ -45,7 +49,7 @@ const useAppUpdate = () => {
     checkUpdate();
   }, []);
 
-  return updateInfo;
+  return { ...updateInfo, dismiss };
 };
 
 export default useAppUpdate;

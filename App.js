@@ -87,7 +87,7 @@ const clerkFrontendApi = "auth.appmailerdaemon.online";
 
 export default function App() {
 
-  const { show, force } = useAppUpdate();
+  const { show, force, dismiss } = useAppUpdate();
 
 
 
@@ -128,7 +128,7 @@ console.log("init2");
   
   return (
     <>
-    <UpdateModal visible={show} force={force} />
+    <UpdateModal visible={show} force={force} onDismiss={dismiss} />
     <QueryClientProvider client={queryClient}>
       <ClerkProvider
         publishableKey="pk_live_Y2xlcmsuYXBwbWFpbGVyZGFlbW9uLm9ubGluZSQ"

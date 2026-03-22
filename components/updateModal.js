@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 
-const UpdateModal = ({ visible, force }) => {
+const UpdateModal = ({ visible, force, onDismiss }) => {
   const handleUpdate = () => {
     Linking.openURL('https://play.google.com/store/apps/details?id=com.yourcompany.mdapp');
   };
@@ -20,7 +20,7 @@ const UpdateModal = ({ visible, force }) => {
           </TouchableOpacity>
 
           {!force && (
-            <TouchableOpacity style={styles.laterBtn}>
+            <TouchableOpacity style={styles.laterBtn} onPress={onDismiss}>
               <Text style={styles.laterText}>Later</Text>
             </TouchableOpacity>
           )}
