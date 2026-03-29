@@ -94,7 +94,7 @@ const CustomDrawerContent = (props) => {
 
             {/* ✅ NEW — Marketplace entry */}
             <NavItem
-              source={{ uri: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png" }}
+              source={require("../assets/marketplace.png")}
               label="Marketplace"
               onPress={() => props.navigation.navigate("Marketplace")}
             />

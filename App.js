@@ -32,7 +32,7 @@ import { ClerkLoaded, ClerkLoading } from "@clerk/clerk-expo";
 import { ActivityIndicator, View, StatusBar } from "react-native";
 //import TrackingScreen from "./Screens/TrackingScreen";
 import { supabase } from "./api/supabase";
-import useAppUpdate from './utils/useAppUpdate';
+// import useAppUpdate from './utils/useAppUpdate';
 import UpdateModal from './components/updateModal';
 
 const Drawer = createDrawerNavigator();
@@ -87,8 +87,7 @@ const clerkFrontendApi = "auth.appmailerdaemon.online";
 
 export default function App() {
 
-  const { show, force, dismiss } = useAppUpdate();
-
+  // const { show, force, dismiss } = useAppUpdate();
 
 
 //notif
@@ -128,39 +127,38 @@ console.log("init2");
   
   return (
     <>
-    <UpdateModal visible={show} force={force} onDismiss={dismiss} />
-    <QueryClientProvider client={queryClient}>
-      <ClerkProvider
-        publishableKey="pk_live_Y2xlcmsuYXBwbWFpbGVyZGFlbW9uLm9ubGluZSQ"
-        frontendApi={clerkFrontendApi}
-        tokenCache={tokenCache}
-      >
-        <NavigationContainer>
-          <StatusBar style="dark" backgroundColor="#ffffff" />
+      {/* <UpdateModal visible={show} force={force} onDismiss={dismiss} /> */}
+      <QueryClientProvider client={queryClient}>
+        <ClerkProvider
+          publishableKey="pk_live_Y2xlcmsuYXBwbWFpbGVyZGFlbW9uLm9ubGluZSQ"
+          frontendApi={clerkFrontendApi}
+          tokenCache={tokenCache}
+        >
+          <NavigationContainer>
+            <StatusBar style="dark" backgroundColor="#ffffff" />
 
+            <ClerkLoading>
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <ActivityIndicator size="large" color="#007bff" />
+              </View>
+            </ClerkLoading>
 
-          <ClerkLoading>
-            <View
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#fff",
-              }}
-            >
-              <ActivityIndicator size="large" color="#007bff" />
-            </View>
-          </ClerkLoading>
-
-          <SignedIn>
-            <DrawerNavigator />
-          </SignedIn>
-          <SignedOut>
-            <AuthStack />
-          </SignedOut>
-        </NavigationContainer>
-      </ClerkProvider>
-    </QueryClientProvider>
+            <SignedIn>
+              <DrawerNavigator />
+            </SignedIn>
+            <SignedOut>
+              <AuthStack />
+            </SignedOut>
+          </NavigationContainer>
+        </ClerkProvider>
+      </QueryClientProvider>
     </>
   );
 }

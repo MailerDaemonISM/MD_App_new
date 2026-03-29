@@ -43,7 +43,7 @@ const useAppUpdate = () => {
     }
   } catch (e) {
     console.log("Update check failed:", e);
-      }
+  }
     };
 
     checkUpdate();
